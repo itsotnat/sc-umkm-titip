@@ -1,0 +1,48 @@
+name: umkm_titip
+description: Aplikasi pencatatan titip outlet dan pesanan untuk UMKM harian (Capstone STSI4440, Universitas Terbuka).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # State management
+  provider: ^6.1.2
+
+  # Local database (offline-first, sesuai dokumen SAD Bagian 3)
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+
+  # HTTP client untuk komunikasi ke backend
+  dio: ^5.5.0+1
+
+  # Penyimpanan token JWT secara aman di perangkat
+  flutter_secure_storage: ^9.2.2
+
+  # Deteksi status koneksi internet, untuk Sync Layer
+  connectivity_plus: ^6.0.5
+
+  # Utilitas
+  uuid: ^4.4.2
+  intl: ^0.19.0
+
+  # Grafik laporan (dokumen SDD Bagian 5, ReportScreen -> SummaryChart)
+  fl_chart: ^0.68.0
+
+  # Export laporan ke Excel (dokumen SDD Bagian 3, ExportService)
+  excel: ^4.0.6
+  share_plus: ^9.0.0
+  path_provider: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

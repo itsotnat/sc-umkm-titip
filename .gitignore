@@ -1,0 +1,17 @@
+# Node
+**/node_modules/
+**/.env
+**/npm-debug.log*
+
+# Flutter/Dart
+**/.dart_tool/
+**/build/
+**/.flutter-plugin-dependencies
+**/android/local.properties
+**/android/.gradle/
+**/*.iml
+**/.idea/
+
+# OS
+.DS_Store
+Thumbs.db
