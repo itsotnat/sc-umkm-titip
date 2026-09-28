@@ -17,22 +17,25 @@ Masing-masing punya `README.md` sendiri dengan instruksi setup lengkap.
 | Bagian | Status |
 |---|---|
 | Backend — semua modul (auth, produk, outlet, titip+sync, pesanan+pemesan, laporan) | ✅ Selesai, **sudah diuji end-to-end** dengan PostgreSQL asli (register/login, CRUD, sync batch, transaksi atomik pesanan, semua rumus laporan diverifikasi cocok dengan SDD) |
-| Backend — Docker (Dockerfile, docker-compose, nginx reverse proxy) | ✅ Siap pakai, **belum di-deploy** ke VPS mana pun (sesuai keputusan kamu — belum ada VPS/domain) |
+| Backend — Deploy production | ✅ **Live di VPS**: `https://api-backend.umkm-titip.web.id/api/v1`, jalan via Docker Compose (app + db + nginx), SSL Let's Encrypt aktif dengan auto-renew (cron) |
 | Mobile — semua layar sesuai UI/UX Design (Beranda, Master Produk/Outlet, Input Titip, Pesanan, Laporan+Export Excel, Auth) | ✅ Selesai, terhubung ke SQLite lokal + API backend (bukan data dummy) |
 | Mobile — kompilasi dengan Flutter SDK | ⚠️ **Belum bisa diverifikasi di lingkungan saya** — sandbox saya diblokir mengunduh Dart SDK. Kode sudah dicek manual (struktur, import, sintaks) dan beberapa bug nyata sudah ditemukan & diperbaiki, tapi kamu tetap perlu menjalankan `flutter pub get` + build pertama kali di komputermu sendiri untuk memastikan tidak ada typo yang lolos. |
 
 ## Langkah selanjutnya di komputermu
 
-1. **Backend**: masuk ke `umkm-titip-backend/`, ikuti README-nya (bisa jalan lokal dengan `npm install` + PostgreSQL, atau langsung `docker compose up` begitu Docker terpasang).
+1. **Backend**: sudah live di production (`https://api-backend.umkm-titip.web.id`), tidak perlu dijalankan lokal lagi kecuali untuk development/debugging (`umkm-titip-backend/README.md` tetap punya instruksi jalan lokal kalau dibutuhkan).
 2. **Mobile**: masuk ke `umkm-titip-mobile/`, jalankan:
    ```
    flutter create --platforms=android .
    flutter pub get
-   flutter run
+   flutter run --dart-define=API_BASE_URL=https://api-backend.umkm-titip.web.id/api/v1
    ```
    (`flutter create` di sini **tidak** menimpa `lib/` atau `pubspec.yaml` yang sudah ada — dia cuma melengkapi folder `android/` yang belum ada.)
-3. Sesuaikan `API_BASE_URL` mobile ke alamat backend kamu (default `http://10.0.2.2:3000/api/v1` untuk emulator Android yang mengakses backend lokal).
-4. Saat siap deploy sungguhan, ikuti dokumen **Deployment & Maintenance Guide** di Project — dan pastikan VPS/domain yang dipakai terpisah total dari infrastruktur pribadi kamu (adamLabs).
+3. Untuk build APK final (bukan mode debug):
+   ```
+   flutter build apk --dart-define=API_BASE_URL=https://api-backend.umkm-titip.web.id/api/v1
+   ```
+4. Domain final proyek ini adalah **`umkm-titip.web.id`** (bukan `umkmtitip.store` yang sempat direncanakan di dokumen awal) — VPS dan domain ini terpisah total dari infrastruktur pribadi kamu (adamLabs).
 
 ## Catatan penting
 

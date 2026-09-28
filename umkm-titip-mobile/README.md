@@ -34,7 +34,7 @@ flutter run
 Alamat backend diatur lewat `lib/utils/constants.dart` (default: `http://10.0.2.2:3000/api/v1`, alamat khusus untuk mengakses localhost komputer dari emulator Android). Untuk device fisik atau saat backend sudah online di VPS, jalankan dengan:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=https://umkmtitip.store/api/v1
+flutter run --dart-define=API_BASE_URL=https://api-backend.umkm-titip.web.id/api/v1
 ```
 
 ## Struktur folder

@@ -87,4 +87,4 @@ Lihat dokumen **REST API Spec: UMKM Titip** untuk daftar lengkap endpoint, forma
 
 ## Deploy ke VPS
 
-Belum ada VPS/domain aktif untuk proyek ini saat kode ini dibuat. Semua file yang dibutuhkan (Dockerfile, docker-compose.yml, nginx/default.conf) sudah siap pakai. Setelah VPS dan domain `umkmtitip.store` tersedia, ikuti langkah-langkah di dokumen **Deployment & Maintenance Guide: UMKM Titip** (setup VPS, konfigurasi domain & SSL, deploy aplikasi, backup database).
+**Sudah live di production.** Backend berjalan di VPS lewat Docker Compose (container app + db + nginx), dengan domain `api-backend.umkm-titip.web.id` dan SSL (Let's Encrypt, auto-renew via cron) sudah aktif. Base URL API: `https://api-backend.umkm-titip.web.id/api/v1`. Detail langkah setup ada di dokumen **Deployment & Maintenance Guide: UMKM Titip**.
