@@ -67,7 +67,10 @@ CREATE TABLE IF NOT EXISTS transaksi_titip (
     produk_id       UUID NOT NULL REFERENCES produk(id) ON DELETE CASCADE,
     tanggal         DATE NOT NULL,
     jumlah_kirim    INT NOT NULL DEFAULT 0,
-    jumlah_retur    INT NOT NULL DEFAULT 0,
+    -- NULL berarti retur belum diinput (beda dari 0 = sudah dikonfirmasi
+    -- habis terjual/tidak ada retur). jumlah_terjual ikut NULL selama retur
+    -- belum diisi, karena belum bisa dihitung.
+    jumlah_retur    INT,
     jumlah_terjual  INT GENERATED ALWAYS AS (jumlah_kirim - jumlah_retur) STORED,
     sync_status     VARCHAR(20) NOT NULL DEFAULT 'synced',
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()

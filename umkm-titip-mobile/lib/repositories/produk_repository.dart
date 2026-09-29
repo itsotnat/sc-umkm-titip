@@ -5,9 +5,12 @@ import '../db/app_database.dart';
 import '../models/produk.dart';
 import '../services/api_client.dart';
 
-/// Repository offline-first: seluruh baca/tulis selalu lewat SQLite lokal
-/// terlebih dahulu (dokumen SAD Bagian 3), lalu ditandai `pending` untuk
-/// disinkronkan Sync Layer saat online.
+/// Repository produk. Tambah/edit dikirim langsung ke server (data master,
+/// butuh koneksi internet), lalu hasil dari server (termasuk id resmi)
+/// disimpan sebagai cache lokal supaya tetap bisa dibaca offline. Kalau
+/// gagal kirim (mis. tidak ada internet), tetap disimpan lokal berstatus
+/// `pending` supaya input tidak hilang, walau baru benar-benar aman dari
+/// `clearAll()` saat logout setelah berhasil tersinkron ke server.
 class ProdukRepository {
   final _uuid = const Uuid();
 
@@ -18,20 +21,57 @@ class ProdukRepository {
   }
 
   Future<Produk> create({required String namaProduk, required double hpp, required double hargaJual}) async {
-    final produk = Produk(id: _uuid.v4(), namaProduk: namaProduk, hpp: hpp, hargaJual: hargaJual);
     final db = await AppDatabase.instance.database;
-    await db.insert('produk', produk.toMap());
-    return produk;
+    try {
+      final response = await ApiClient.instance.dio.post('/produk', data: {
+        'nama_produk': namaProduk,
+        'hpp': hpp,
+        'harga_jual': hargaJual,
+      });
+      final data = response.data['data'];
+      final produk = Produk(
+        id: data['id'],
+        namaProduk: data['nama_produk'],
+        hpp: (data['hpp'] as num).toDouble(),
+        hargaJual: (data['harga_jual'] as num).toDouble(),
+        syncStatus: 'synced',
+        updatedAt: DateTime.tryParse(data['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      );
+      await db.insert('produk', produk.toMap());
+      return produk;
+    } catch (_) {
+      final produk = Produk(id: _uuid.v4(), namaProduk: namaProduk, hpp: hpp, hargaJual: hargaJual);
+      await db.insert('produk', produk.toMap());
+      return produk;
+    }
   }
 
   Future<void> update(Produk produk) async {
     final db = await AppDatabase.instance.database;
-    await db.update(
-      'produk',
-      produk.copyWith(syncStatus: 'pending').toMap(),
-      where: 'id = ?',
-      whereArgs: [produk.id],
-    );
+    try {
+      final response = await ApiClient.instance.dio.put('/produk/${produk.id}', data: {
+        'nama_produk': produk.namaProduk,
+        'hpp': produk.hpp,
+        'harga_jual': produk.hargaJual,
+      });
+      final data = response.data['data'];
+      final synced = Produk(
+        id: data['id'],
+        namaProduk: data['nama_produk'],
+        hpp: (data['hpp'] as num).toDouble(),
+        hargaJual: (data['harga_jual'] as num).toDouble(),
+        syncStatus: 'synced',
+        updatedAt: DateTime.tryParse(data['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      );
+      await db.update('produk', synced.toMap(), where: 'id = ?', whereArgs: [synced.id]);
+    } catch (_) {
+      await db.update(
+        'produk',
+        produk.copyWith(syncStatus: 'pending').toMap(),
+        where: 'id = ?',
+        whereArgs: [produk.id],
+      );
+    }
   }
 
   Future<void> delete(String id) async {

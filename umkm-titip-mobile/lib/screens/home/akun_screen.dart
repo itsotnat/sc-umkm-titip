@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_bar_brand.dart';
 
 class AkunScreen extends StatelessWidget {
   const AkunScreen({super.key});
@@ -9,7 +10,7 @@ class AkunScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Akun')),
+      appBar: AppBar(title: const AppBarBrand(label: 'Akun')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

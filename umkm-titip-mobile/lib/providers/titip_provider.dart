@@ -11,13 +11,17 @@ import '../services/sync_manager.dart';
 class TitipInputRow {
   final Produk produk;
   int jumlahKirim;
-  int jumlahRetur;
+
+  /// NULL = retur belum diinput sama sekali (beda dari 0 = sudah
+  /// dikonfirmasi habis terjual/tidak ada retur).
+  int? jumlahRetur;
   String? existingId;
 
-  TitipInputRow({required this.produk, this.jumlahKirim = 0, this.jumlahRetur = 0, this.existingId});
+  TitipInputRow({required this.produk, this.jumlahKirim = 0, this.jumlahRetur, this.existingId});
 
-  int get terjual => jumlahKirim - jumlahRetur;
-  double get nilaiTerjual => terjual * produk.hargaJual;
+  /// NULL bila retur belum diinput (belum bisa dihitung).
+  int? get terjual => jumlahRetur == null ? null : jumlahKirim - jumlahRetur!;
+  double? get nilaiTerjual => terjual == null ? null : terjual! * produk.hargaJual;
 }
 
 class TitipProvider extends ChangeNotifier {
@@ -39,7 +43,7 @@ class TitipProvider extends ChangeNotifier {
 
   Future<void> simpan(String outletId, DateTime tanggal, List<TitipInputRow> rows) async {
     for (final row in rows) {
-      if (row.jumlahKirim == 0 && row.jumlahRetur == 0 && row.existingId == null) continue;
+      if (row.jumlahKirim == 0 && row.jumlahRetur == null && row.existingId == null) continue;
       await _repository.upsert(
         outletId: outletId,
         produkId: row.produk.id,

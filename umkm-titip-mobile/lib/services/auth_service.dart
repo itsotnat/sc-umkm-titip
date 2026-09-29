@@ -2,6 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../db/app_database.dart';
+import '../repositories/outlet_repository.dart';
+import '../repositories/pesanan_repository.dart';
+import '../repositories/produk_repository.dart';
 import 'api_client.dart';
 import 'secure_storage_service.dart';
 
@@ -43,7 +46,33 @@ class AuthService {
       'last_sync_at': null,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
 
+    // Tarik ulang seluruh data master dari server setiap kali berhasil
+    // login/register, supaya data tetap ada walau sebelumnya sempat logout
+    // (yang mengosongkan database lokal lewat AppDatabase.clearAll()).
+    await _pullMasterData();
+
     return data;
+  }
+
+  /// Sesuai dokumen SAD Bagian 3 (Sync Layer, pull saat login). Kalau gagal
+  /// (mis. baru login lalu langsung offline), dibiarkan saja: data lokal
+  /// tetap seperti sebelumnya dan bisa dicoba lagi lewat pull-to-refresh
+  /// di masing-masing layar.
+  Future<void> _pullMasterData() async {
+    try {
+      final results = await Future.wait([
+        _dio.get('/produk'),
+        _dio.get('/outlet'),
+        _dio.get('/pemesan'),
+        _dio.get('/pesanan'),
+      ]);
+      await ProdukRepository().replaceFromServer(results[0].data['data'] as List<dynamic>);
+      await OutletRepository().replaceFromServer(results[1].data['data'] as List<dynamic>);
+      await PemesanRepository().replaceFromServer(results[2].data['data'] as List<dynamic>);
+      await PesananRepository().replaceFromServer(results[3].data['data'] as List<dynamic>);
+    } catch (_) {
+      // Lihat catatan di atas.
+    }
   }
 
   Future<bool> isLoggedIn() async {

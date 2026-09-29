@@ -5,6 +5,9 @@ import '../db/app_database.dart';
 import '../models/outlet.dart';
 import '../services/api_client.dart';
 
+/// Sama seperti ProdukRepository: tambah/edit outlet dikirim ke server dulu
+/// (data master, butuh koneksi), baru dicache lokal dengan id resmi dari
+/// server, supaya aman saat `clearAll()` dipanggil ketika logout.
 class OutletRepository {
   final _uuid = const Uuid();
 
@@ -15,15 +18,63 @@ class OutletRepository {
   }
 
   Future<Outlet> create({required String namaOutlet, String? alamat, String? noWhatsapp}) async {
-    final outlet = Outlet(id: _uuid.v4(), namaOutlet: namaOutlet, alamat: alamat, noWhatsapp: noWhatsapp);
     final db = await AppDatabase.instance.database;
-    await db.insert('outlet', outlet.toMap());
-    return outlet;
+    try {
+      final response = await ApiClient.instance.dio.post('/outlet', data: {
+        'nama_outlet': namaOutlet,
+        'alamat': alamat,
+        'no_whatsapp': noWhatsapp,
+      });
+      final data = response.data['data'];
+      final outlet = Outlet(
+        id: data['id'],
+        namaOutlet: data['nama_outlet'],
+        alamat: data['alamat'],
+        noWhatsapp: data['no_whatsapp'],
+        syncStatus: 'synced',
+        updatedAt: DateTime.tryParse(data['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      );
+      await db.insert('outlet', outlet.toMap());
+      return outlet;
+    } catch (_) {
+      final outlet = Outlet(id: _uuid.v4(), namaOutlet: namaOutlet, alamat: alamat, noWhatsapp: noWhatsapp);
+      await db.insert('outlet', outlet.toMap());
+      return outlet;
+    }
   }
 
   Future<void> update(Outlet outlet) async {
     final db = await AppDatabase.instance.database;
-    await db.update('outlet', outlet.toMap(), where: 'id = ?', whereArgs: [outlet.id]);
+    try {
+      final response = await ApiClient.instance.dio.put('/outlet/${outlet.id}', data: {
+        'nama_outlet': outlet.namaOutlet,
+        'alamat': outlet.alamat,
+        'no_whatsapp': outlet.noWhatsapp,
+      });
+      final data = response.data['data'];
+      final synced = Outlet(
+        id: data['id'],
+        namaOutlet: data['nama_outlet'],
+        alamat: data['alamat'],
+        noWhatsapp: data['no_whatsapp'],
+        syncStatus: 'synced',
+        updatedAt: DateTime.tryParse(data['updated_at']?.toString() ?? '') ?? DateTime.now(),
+      );
+      await db.update('outlet', synced.toMap(), where: 'id = ?', whereArgs: [synced.id]);
+    } catch (_) {
+      await db.update(
+        'outlet',
+        Outlet(
+          id: outlet.id,
+          namaOutlet: outlet.namaOutlet,
+          alamat: outlet.alamat,
+          noWhatsapp: outlet.noWhatsapp,
+          syncStatus: 'pending',
+        ).toMap(),
+        where: 'id = ?',
+        whereArgs: [outlet.id],
+      );
+    }
   }
 
   Future<void> delete(String id) async {

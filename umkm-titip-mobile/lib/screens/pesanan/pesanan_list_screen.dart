@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/pesanan_provider.dart';
+import '../../widgets/app_bar_brand.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/format_utils.dart';
 import '../../widgets/status_badge.dart';
@@ -36,7 +37,7 @@ class _PesananListScreenState extends State<PesananListScreen> {
       initialIndex: 0,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Pesanan'),
+          title: const AppBarBrand(label: 'Pesanan'),
           bottom: TabBar(
             tabs: const [Tab(text: 'Semua'), Tab(text: 'Belum Selesai'), Tab(text: 'Selesai')],
             onTap: (index) {
@@ -76,19 +77,26 @@ class _PesananListScreenState extends State<PesananListScreen> {
                               ],
                             ),
                             isThreeLine: true,
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                GestureDetector(
-                                  onTap: () => provider.toggleSelesai(pesanan.id, !pesanan.statusSelesai),
-                                  child: StatusBadge(label: pesanan.statusSelesai ? 'Selesai' : 'Menunggu'),
-                                ),
-                                const SizedBox(height: 4),
-                                GestureDetector(
-                                  onTap: () => provider.toggleLunas(pesanan.id, !pesanan.statusLunas),
-                                  child: StatusBadge(label: pesanan.statusLunas ? 'Lunas' : 'Belum Lunas'),
-                                ),
-                              ],
+                            trailing: FittedBox(
+                              // Mencegah overflow beberapa pixel saat dua badge status
+                              // ditumpuk vertikal di ruang trailing ListTile yang sempit
+                              // (mis. ukuran font perangkat/skala aksesibilitas berbeda).
+                              fit: BoxFit.scaleDown,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => provider.toggleSelesai(pesanan.id, !pesanan.statusSelesai),
+                                    child: StatusBadge(label: pesanan.statusSelesai ? 'Selesai' : 'Menunggu'),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  GestureDetector(
+                                    onTap: () => provider.toggleLunas(pesanan.id, !pesanan.statusLunas),
+                                    child: StatusBadge(label: pesanan.statusLunas ? 'Lunas' : 'Belum Lunas'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );

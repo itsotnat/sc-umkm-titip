@@ -27,7 +27,16 @@ class Pesanan {
     this.items = const [],
   }) : updatedAt = updatedAt ?? DateTime.now();
 
-  bool get jatuhTempoLewat => !statusSelesai && tanggalJatuhTempo.isBefore(DateTime.now());
+  /// Sudah lewat tanggal jatuh tempo, dihitung per-tanggal (bukan jam-menit)
+  /// supaya pesanan yang jatuh temponya "hari ini" tidak langsung dianggap
+  /// lewat begitu lewat tengah malam.
+  bool get jatuhTempoLewat {
+    if (statusSelesai) return false;
+    final sekarang = DateTime.now();
+    final hariIni = DateTime(sekarang.year, sekarang.month, sekarang.day);
+    final tempo = DateTime(tanggalJatuhTempo.year, tanggalJatuhTempo.month, tanggalJatuhTempo.day);
+    return tempo.isBefore(hariIni);
+  }
 
   Pesanan copyWith({bool? statusSelesai, bool? statusLunas, String? syncStatus}) {
     return Pesanan(

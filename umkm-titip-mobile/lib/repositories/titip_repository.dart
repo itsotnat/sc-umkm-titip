@@ -25,7 +25,7 @@ class TitipRepository {
     required String produkId,
     required DateTime tanggal,
     required int jumlahKirim,
-    required int jumlahRetur,
+    int? jumlahRetur,
     String? existingId,
   }) async {
     final db = await AppDatabase.instance.database;

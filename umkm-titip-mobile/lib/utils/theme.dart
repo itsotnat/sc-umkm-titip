@@ -39,13 +39,21 @@ Color statusColor(String status) {
     case 'Laris':
     case 'Lunas':
     case 'Selesai':
+    case 'Sudah Diinput':
+    case 'Besok':
       return AppColors.hijau;
     case 'Standar':
     case 'Menunggu':
+    case 'Hari Ini':
+    case 'Retur Belum Diinput':
       return AppColors.kuning;
     case 'Kurang':
     case 'Belum Lunas':
       return AppColors.merah;
+    // "Tidak Dikirim" sengaja netral (abu-abu), bukan merah: ini bukan
+    // pekerjaan yang belum selesai, cuma outlet yang memang tidak
+    // dikirimi hari itu.
+    case 'Tidak Dikirim':
     default:
       return AppColors.abuNetral;
   }

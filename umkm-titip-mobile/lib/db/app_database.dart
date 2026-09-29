@@ -21,9 +21,40 @@ class AppDatabase {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
+  }
+
+  /// v1 -> v2: `jumlah_retur` dibuat boleh NULL, supaya bisa membedakan
+  /// "retur belum diinput" (NULL) dari "retur sudah dikonfirmasi 0/habis
+  /// terjual" (angka 0). SQLite tidak mendukung ALTER COLUMN untuk
+  /// melonggarkan NOT NULL, jadi tabel dibuat ulang lalu data lama dipindahkan.
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('DROP INDEX IF EXISTS idx_titip_outlet_tanggal');
+      await db.execute('ALTER TABLE transaksi_titip RENAME TO transaksi_titip_old');
+      await db.execute('''
+        CREATE TABLE transaksi_titip (
+          id TEXT PRIMARY KEY,
+          outlet_id TEXT NOT NULL,
+          produk_id TEXT NOT NULL,
+          tanggal TEXT NOT NULL,
+          jumlah_kirim INTEGER NOT NULL DEFAULT 0,
+          jumlah_retur INTEGER,
+          sync_status TEXT NOT NULL DEFAULT 'pending',
+          updated_at TEXT NOT NULL
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO transaksi_titip (id, outlet_id, produk_id, tanggal, jumlah_kirim, jumlah_retur, sync_status, updated_at)
+        SELECT id, outlet_id, produk_id, tanggal, jumlah_kirim, jumlah_retur, sync_status, updated_at
+        FROM transaksi_titip_old
+      ''');
+      await db.execute('DROP TABLE transaksi_titip_old');
+      await db.execute('CREATE INDEX idx_titip_outlet_tanggal ON transaksi_titip(outlet_id, tanggal)');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -65,7 +96,7 @@ class AppDatabase {
         produk_id TEXT NOT NULL,
         tanggal TEXT NOT NULL,
         jumlah_kirim INTEGER NOT NULL DEFAULT 0,
-        jumlah_retur INTEGER NOT NULL DEFAULT 0,
+        jumlah_retur INTEGER,
         sync_status TEXT NOT NULL DEFAULT 'pending',
         updated_at TEXT NOT NULL
       )

@@ -2,13 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/outlet.dart';
+import '../../models/transaksi_titip.dart';
 import '../../providers/laporan_provider.dart';
 import '../../providers/outlet_provider.dart';
 import '../../providers/pesanan_provider.dart';
 import '../../providers/produk_provider.dart';
+import '../../repositories/titip_repository.dart';
+import '../../widgets/app_bar_brand.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/format_utils.dart';
+import '../../widgets/status_badge.dart';
 import '../titip/titip_input_sheet.dart';
+
+/// Label pengingat hitung mundur untuk pesanan yang belum lewat tanggal
+/// jatuh tempo (yang sudah lewat tidak lagi ditampilkan di Beranda, lihat
+/// [_DashboardScreenState._loadAll] & filter di [_DashboardScreenState.build]).
+String _labelPengingat(DateTime tanggalJatuhTempo) {
+  final sekarang = DateTime.now();
+  final hariIni = DateTime(sekarang.year, sekarang.month, sekarang.day);
+  final tempo = DateTime(tanggalJatuhTempo.year, tanggalJatuhTempo.month, tanggalJatuhTempo.day);
+  final selisih = tempo.difference(hariIni).inDays;
+  if (selisih <= 0) return 'Hari Ini';
+  if (selisih == 1) return 'Besok';
+  return 'H-$selisih';
+}
 
 /// Beranda (Dashboard), sesuai dokumen UI/UX Design Bagian 4.
 class DashboardScreen extends StatefulWidget {
@@ -19,7 +36,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final TitipRepository _titipRepository = TitipRepository();
   bool _loaded = false;
+
+  /// Transaksi titip hari ini per outlet, dipakai untuk badge
+  /// "Tidak Dikirim" / "Retur Belum Diinput" / "Sudah Diinput" di kartu outlet.
+  Map<String, List<TransaksiTitip>> _titipHariIni = {};
 
   @override
   void didChangeDependencies() {
@@ -41,6 +63,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             DateTime(today.year, today.month + 1, 0),
           ),
     ]);
+    await _muatTitipHariIni();
+  }
+
+  /// Dipanggil setelah daftar outlet dimuat, supaya tahu outlet mana yang
+  /// sudah/belum di-input hari ini.
+  Future<void> _muatTitipHariIni() async {
+    final outlets = context.read<OutletProvider>().items;
+    final hasil = <String, List<TransaksiTitip>>{};
+    for (final outlet in outlets) {
+      hasil[outlet.id] = await _titipRepository.getByOutletDanTanggal(outlet.id, DateTime.now());
+    }
+    if (mounted) setState(() => _titipHariIni = hasil);
   }
 
   @override
@@ -53,10 +87,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final totalKirimBulanIni = laporanProvider.rows.fold<int>(0, (s, r) => s + r.totalKirim);
     final totalNilaiTerjual = laporanProvider.rows.fold<double>(0, (s, r) => s + r.totalNilaiTerjual);
     final outletBelumInput = outletProvider.items.length; // disederhanakan: bisa dikembangkan mengecek input hari ini
-    final pesananJatuhTempo = pesananProvider.items.where((p) => !p.statusSelesai).take(5).toList();
+    // Pesanan yang statusnya sudah lewat tanggal jatuh tempo sengaja tidak
+    // ditampilkan di sini lagi (hilang dari Beranda), tapi tetap ada di menu
+    // Pesanan dan tetap dihitung di Laporan (progress & keuangan).
+    final pesananJatuhTempo = pesananProvider.items.where((p) => !p.statusSelesai && !p.jatuhTempoLewat).take(5).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('UMKM Titip')),
+      appBar: AppBar(title: const AppBarBrand(label: 'Beranda')),
       body: RefreshIndicator(
         onRefresh: _loadAll,
         child: ListView(
@@ -83,9 +120,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             else
               ...outletProvider.items.map((outlet) => _OutletCard(
                     outlet: outlet,
+                    transaksiHariIni: _titipHariIni[outlet.id] ?? const [],
                     onTap: produkProvider.items.isEmpty
                         ? null
-                        : () => showTitipInputSheet(context, outlet: outlet, tanggal: DateTime.now()),
+                        : () => showTitipInputSheet(context, outlet: outlet, tanggal: DateTime.now()).then((_) => _muatTitipHariIni()),
                   )),
             const SizedBox(height: 24),
             Text('Pesanan Jatuh Tempo', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
@@ -93,12 +131,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (pesananJatuhTempo.isEmpty)
               const EmptyState(icon: Icons.receipt_long_outlined, message: 'Belum ada pesanan yang perlu diselesaikan.')
             else
-              ...pesananJatuhTempo.map((p) => ListTile(
-                    dense: true,
-                    leading: Icon(Icons.circle, size: 10, color: p.jatuhTempoLewat ? Colors.red : Colors.grey),
-                    title: Text(p.namaPemesan ?? '-'),
-                    subtitle: Text('Jatuh tempo: ${formatTanggal(p.tanggalJatuhTempo)}'),
-                  )),
+              ...pesananJatuhTempo.map((p) {
+                final ringkasan = p.items.map((i) => '${i.namaProduk ?? ''} x${i.jumlah}').join(', ');
+                return ListTile(
+                  dense: true,
+                  title: Text(p.namaPemesan ?? '-', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    ringkasan.isEmpty ? 'Jatuh tempo: ${formatTanggal(p.tanggalJatuhTempo)}' : ringkasan,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: StatusBadge(label: _labelPengingat(p.tanggalJatuhTempo)),
+                );
+              }),
             const SizedBox(height: 80),
           ],
         ),
@@ -138,18 +183,50 @@ class _SummaryCard extends StatelessWidget {
 class _OutletCard extends StatelessWidget {
   final Outlet outlet;
   final VoidCallback? onTap;
+  final List<TransaksiTitip> transaksiHariIni;
 
-  const _OutletCard({required this.outlet, required this.onTap});
+  const _OutletCard({required this.outlet, required this.onTap, required this.transaksiHariIni});
 
   @override
   Widget build(BuildContext context) {
+    // 3 kemungkinan status hari ini:
+    // - belum ada baris sama sekali -> Tidak Dikirim (outlet ini memang tidak dikirimi hari ini)
+    // - ada baris kirim, tapi ada yang retur-nya masih kosong -> Retur Belum Diinput
+    // - semua baris kirim sudah ada angka retur-nya (termasuk 0) -> Sudah Diinput
+    final returBelumLengkap = transaksiHariIni.any((t) => t.jumlahRetur == null);
+    final String label;
+    String subtitle;
+    if (transaksiHariIni.isEmpty) {
+      label = 'Tidak Dikirim';
+      subtitle = outlet.alamat?.isNotEmpty == true ? outlet.alamat! : 'Ketuk untuk input titip hari ini';
+    } else if (returBelumLengkap) {
+      label = 'Retur Belum Diinput';
+      final totalKirim = transaksiHariIni.fold<int>(0, (s, t) => s + t.jumlahKirim);
+      subtitle = 'Kirim $totalKirim · Retur belum diisi semua';
+    } else {
+      label = 'Sudah Diinput';
+      final totalKirim = transaksiHariIni.fold<int>(0, (s, t) => s + t.jumlahKirim);
+      final totalRetur = transaksiHariIni.fold<int>(0, (s, t) => s + (t.jumlahRetur ?? 0));
+      subtitle = 'Kirim $totalKirim · Retur $totalRetur · Terjual ${totalKirim - totalRetur}';
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: const CircleAvatar(child: Icon(Icons.storefront)),
         title: Text(outlet.namaOutlet),
-        subtitle: Text(outlet.alamat?.isNotEmpty == true ? outlet.alamat! : 'Ketuk untuk input titip hari ini'),
-        trailing: const Icon(Icons.chevron_right),
+        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StatusBadge(label: label),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
         onTap: onTap,
       ),
     );

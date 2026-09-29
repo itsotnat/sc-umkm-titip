@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_logo.dart';
 import 'register_screen.dart';
 
 /// Sesuai dokumen UI/UX Design Bagian 3 (Wireframe Login & Registrasi).
@@ -48,12 +49,12 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 24),
-                const Icon(Icons.storefront_rounded, size: 72, color: Colors.green),
+                const Center(child: AppLogo(size: 88, showLabel: true)),
                 const SizedBox(height: 16),
                 Text(
-                  'Masuk ke UMKM Titip',
+                  'Masuk untuk melanjutkan',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
                 ),
                 const SizedBox(height: 32),
                 TextFormField(

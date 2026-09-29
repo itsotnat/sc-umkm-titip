@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/app_bar_brand.dart';
 import 'outlet_screen.dart';
 import 'produk_screen.dart';
 
@@ -14,7 +15,7 @@ class MasterTabScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Master'),
+          title: const AppBarBrand(label: 'Master'),
           bottom: const TabBar(tabs: [Tab(text: 'Produk'), Tab(text: 'Outlet')]),
         ),
         body: const TabBarView(children: [ProdukScreen(), OutletScreen()]),

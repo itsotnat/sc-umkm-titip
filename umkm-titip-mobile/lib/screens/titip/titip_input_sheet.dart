@@ -47,8 +47,12 @@ class _TitipInputSheetState extends State<TitipInputSheet> {
     setState(() => _loading = false);
   }
 
-  int get _totalTerjual => _rows.fold(0, (sum, r) => sum + r.terjual);
-  double get _totalNilai => _rows.fold(0, (sum, r) => sum + r.nilaiTerjual);
+  // Baris yang retur-nya belum diinput dianggap kontribusi 0 dulu ke total di
+  // footer (angka provisional, belum final) — badge di kartu produk sendiri
+  // yang menunjukkan status "belum lengkap" per baris.
+  int get _totalTerjual => _rows.fold(0, (sum, r) => sum + (r.terjual ?? 0));
+  double get _totalNilai => _rows.fold(0, (sum, r) => sum + (r.nilaiTerjual ?? 0));
+  bool get _adaReturBelumDiinput => _rows.any((r) => r.jumlahKirim > 0 && r.jumlahRetur == null);
 
   Future<void> _simpan() async {
     setState(() => _saving = true);
@@ -112,6 +116,14 @@ class _TitipInputSheetState extends State<TitipInputSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (_adaReturBelumDiinput)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Ada produk yang Retur-nya belum diisi — total di bawah masih sementara.',
+                            style: TextStyle(fontSize: 12, color: Colors.orange),
+                          ),
+                        ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -159,7 +171,7 @@ class _ProdukRow extends StatelessWidget {
                 label: 'Kirim',
                 value: row.jumlahKirim,
                 onChanged: (v) {
-                  row.jumlahKirim = v;
+                  row.jumlahKirim = v ?? 0;
                   onChanged();
                 },
               ),
@@ -184,11 +196,13 @@ class _ProdukRow extends StatelessWidget {
                   Text('Terjual', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                   const SizedBox(height: 4),
                   Text(
-                    '${row.terjual}',
+                    row.terjual == null ? '-' : '${row.terjual}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: row.terjual < 0 ? Colors.red : Colors.green.shade700,
+                      color: row.terjual == null
+                          ? Colors.grey
+                          : (row.terjual! < 0 ? Colors.red : Colors.green.shade700),
                     ),
                   ),
                 ],
@@ -204,8 +218,11 @@ class _ProdukRow extends StatelessWidget {
 class _NumberField extends StatelessWidget {
   final String rowKey;
   final String label;
-  final int value;
-  final ValueChanged<int> onChanged;
+
+  /// NULL = kolom belum pernah diisi (dibiarkan kosong), beda dari 0 yang
+  /// berarti sudah diisi angka nol secara eksplisit.
+  final int? value;
+  final ValueChanged<int?> onChanged;
 
   const _NumberField({required this.rowKey, required this.label, required this.value, required this.onChanged});
 
@@ -215,11 +232,11 @@ class _NumberField extends StatelessWidget {
     // kursor tidak hilang saat parent melakukan setState di tiap ketikan.
     return TextFormField(
       key: ValueKey('numfield-$rowKey-$label'),
-      initialValue: value == 0 ? '' : value.toString(),
+      initialValue: value == null ? '' : value.toString(),
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: InputDecoration(labelText: label, isDense: true),
-      onChanged: (text) => onChanged(int.tryParse(text) ?? 0),
+      onChanged: (text) => onChanged(text.isEmpty ? null : int.tryParse(text)),
     );
   }
 }

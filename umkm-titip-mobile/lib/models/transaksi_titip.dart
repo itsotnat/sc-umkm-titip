@@ -4,7 +4,10 @@ class TransaksiTitip {
   final String produkId;
   final DateTime tanggal;
   final int jumlahKirim;
-  final int jumlahRetur;
+
+  /// NULL berarti retur belum diinput sama sekali (beda dari 0, yang berarti
+  /// sudah dikonfirmasi habis terjual/tidak ada retur).
+  final int? jumlahRetur;
   final String syncStatus;
   final DateTime updatedAt;
 
@@ -14,13 +17,14 @@ class TransaksiTitip {
     required this.produkId,
     required this.tanggal,
     required this.jumlahKirim,
-    required this.jumlahRetur,
+    this.jumlahRetur,
     this.syncStatus = 'pending',
     DateTime? updatedAt,
   }) : updatedAt = updatedAt ?? DateTime.now();
 
   /// terjual = kirim - retur, sesuai formula di dokumen SDD Bagian 4.
-  int get jumlahTerjual => jumlahKirim - jumlahRetur;
+  /// NULL bila retur belum diinput (belum bisa dihitung).
+  int? get jumlahTerjual => jumlahRetur == null ? null : jumlahKirim - jumlahRetur!;
 
   Map<String, dynamic> toMap() {
     return {
@@ -42,7 +46,7 @@ class TransaksiTitip {
       produkId: map['produk_id'] as String,
       tanggal: DateTime.parse(map['tanggal'] as String),
       jumlahKirim: map['jumlah_kirim'] as int,
-      jumlahRetur: map['jumlah_retur'] as int,
+      jumlahRetur: map['jumlah_retur'] as int?,
       syncStatus: map['sync_status'] as String? ?? 'synced',
       updatedAt: DateTime.tryParse(map['updated_at']?.toString() ?? '') ?? DateTime.now(),
     );

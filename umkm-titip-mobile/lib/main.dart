@@ -10,6 +10,7 @@ import 'providers/titip_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'utils/theme.dart';
+import 'widgets/app_logo.dart';
 
 void main() {
   runApp(const UmkmTitipApp());
@@ -49,7 +50,18 @@ class RootRouter extends StatelessWidget {
       builder: (context, auth, _) {
         switch (auth.status) {
           case AuthStatus.unknown:
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            return const Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AppLogo(size: 96, showLabel: true),
+                    SizedBox(height: 32),
+                    CircularProgressIndicator(),
+                  ],
+                ),
+              ),
+            );
           case AuthStatus.loggedOut:
             return const LoginScreen();
           case AuthStatus.loggedIn:

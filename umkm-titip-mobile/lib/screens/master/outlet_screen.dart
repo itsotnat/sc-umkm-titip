@@ -1,9 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/outlet.dart';
 import '../../providers/outlet_provider.dart';
 import '../../widgets/empty_state.dart';
+
+/// Menormalkan nomor WhatsApp ke format internasional yang dipakai wa.me
+/// (mis. "0812..." atau "+62812..." -> "62812...").
+String? _normalizeWhatsapp(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return null;
+  var nomor = raw.replaceAll(RegExp(r'[\s\-]'), '');
+  if (nomor.startsWith('+')) nomor = nomor.substring(1);
+  if (nomor.startsWith('0')) nomor = '62${nomor.substring(1)}';
+  return nomor;
+}
+
+Future<void> _bukaWhatsapp(BuildContext context, String? nomor) async {
+  final normalized = _normalizeWhatsapp(nomor);
+  if (normalized == null) return;
+  final uri = Uri.parse('https://wa.me/$normalized');
+  final berhasil = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!berhasil && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Tidak bisa membuka WhatsApp. Pastikan WhatsApp terpasang di HP ini.')),
+    );
+  }
+}
 
 class OutletScreen extends StatefulWidget {
   const OutletScreen({super.key});
@@ -78,10 +101,22 @@ class _OutletScreenState extends State<OutletScreen> {
                         child: ListTile(
                           title: Text(outlet.namaOutlet),
                           subtitle: Text(outlet.alamat?.isNotEmpty == true ? outlet.alamat! : '-'),
-                          trailing: (outlet.noWhatsapp?.isNotEmpty == true)
-                              ? const Icon(Icons.chat, color: Colors.green)
-                              : null,
-                          onTap: () => _openForm(outlet: outlet),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (outlet.noWhatsapp?.isNotEmpty == true)
+                                IconButton(
+                                  icon: const Icon(Icons.chat, color: Colors.green),
+                                  tooltip: 'Chat WhatsApp',
+                                  onPressed: () => _bukaWhatsapp(context, outlet.noWhatsapp),
+                                ),
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                tooltip: 'Edit outlet',
+                                onPressed: () => _openForm(outlet: outlet),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );

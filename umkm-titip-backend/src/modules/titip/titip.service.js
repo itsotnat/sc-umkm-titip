@@ -26,8 +26,11 @@ async function syncBatch(userId, items) {
         throw new Error('field wajib (id, outlet_id, produk_id, tanggal) tidak lengkap');
       }
       const kirim = Number(item.jumlah_kirim) || 0;
-      const retur = Number(item.jumlah_retur) || 0;
-      if (kirim < 0 || retur < 0) {
+      // NULL/undefined berarti retur belum diinput (beda dari 0, yang berarti
+      // sudah dikonfirmasi habis terjual) — jangan dipaksa jadi 0 di sini.
+      const returMentah = item.jumlah_retur;
+      const retur = returMentah === null || returMentah === undefined ? null : Number(returMentah);
+      if (kirim < 0 || (retur !== null && retur < 0)) {
         throw new Error('jumlah_kirim dan jumlah_retur tidak boleh negatif');
       }
       const result = await titipRepository.upsert(userId, {
