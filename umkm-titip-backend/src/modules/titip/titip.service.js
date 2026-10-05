@@ -33,6 +33,9 @@ async function syncBatch(userId, items) {
       if (kirim < 0 || (retur !== null && retur < 0)) {
         throw new Error('jumlah_kirim dan jumlah_retur tidak boleh negatif');
       }
+      if (retur !== null && retur > kirim) {
+        throw new Error('jumlah_retur tidak boleh melebihi jumlah_kirim');
+      }
       const result = await titipRepository.upsert(userId, {
         ...item,
         jumlah_kirim: kirim,

@@ -75,7 +75,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (v) => (v == null || !v.contains('@')) ? 'Format email tidak valid' : null,
+                  validator: (v) =>
+                      (v == null || !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())) ? 'Format email tidak valid' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -88,14 +89,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
-                  validator: (v) => (v == null || v.length < 6) ? 'Password minimal 6 karakter' : null,
+                  validator: (v) => (v == null || v.length < 8) ? 'Password minimal 8 karakter' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _confirmController,
                   obscureText: _obscure,
                   decoration: const InputDecoration(labelText: 'Konfirmasi Password'),
-                  validator: (v) => (v != _passwordController.text) ? 'Konfirmasi password tidak cocok' : null,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Konfirmasi password wajib diisi';
+                    return (v != _passwordController.text) ? 'Konfirmasi password tidak cocok' : null;
+                  },
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(

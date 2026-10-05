@@ -54,7 +54,19 @@ class _TitipInputSheetState extends State<TitipInputSheet> {
   double get _totalNilai => _rows.fold(0, (sum, r) => sum + (r.nilaiTerjual ?? 0));
   bool get _adaReturBelumDiinput => _rows.any((r) => r.jumlahKirim > 0 && r.jumlahRetur == null);
 
+  // Retur tidak boleh lebih besar dari kirim (kalau begitu, "Terjual" jadi
+  // negatif — nilai yang tidak masuk akal secara bisnis). Dicek di sini
+  // (bukan cuma lewat warna merah di angka Terjual) supaya tombol Simpan
+  // benar-benar diblok, bukan cuma indikator visual.
+  bool get _adaReturLebihBesar => _rows.any((r) => r.jumlahRetur != null && r.jumlahRetur! > r.jumlahKirim);
+
   Future<void> _simpan() async {
+    if (_adaReturLebihBesar) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ada produk dengan Retur melebihi jumlah Kirim. Perbaiki dulu sebelum menyimpan.')),
+      );
+      return;
+    }
     setState(() => _saving = true);
     await context.read<TitipProvider>().simpan(widget.outlet.id, widget.tanggal, _rows);
     if (mounted) {
@@ -116,7 +128,15 @@ class _TitipInputSheetState extends State<TitipInputSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (_adaReturBelumDiinput)
+                      if (_adaReturLebihBesar)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Ada produk dengan Retur melebihi jumlah Kirim — perbaiki dulu sebelum menyimpan.',
+                            style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600),
+                          ),
+                        )
+                      else if (_adaReturBelumDiinput)
                         const Padding(
                           padding: EdgeInsets.only(bottom: 8),
                           child: Text(
@@ -133,7 +153,7 @@ class _TitipInputSheetState extends State<TitipInputSheet> {
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton(
-                        onPressed: (_loading || _saving || _rows.isEmpty) ? null : _simpan,
+                        onPressed: (_loading || _saving || _rows.isEmpty || _adaReturLebihBesar) ? null : _simpan,
                         child: _saving
                             ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Text('Simpan'),
@@ -158,12 +178,20 @@ class _ProdukRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Retur tidak boleh melebihi Kirim — ditandai langsung di field-nya
+    // (bukan cuma lewat warna angka Terjual) supaya baris yang bermasalah
+    // kelihatan jelas saat produk di kartu ini banyak.
+    final returError = (row.jumlahRetur != null && row.jumlahRetur! > row.jumlahKirim)
+        ? 'Melebihi kirim (${row.jumlahKirim})'
+        : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(row.produk.namaProduk, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: _NumberField(
@@ -182,6 +210,7 @@ class _ProdukRow extends StatelessWidget {
                 rowKey: row.produk.id,
                 label: 'Retur',
                 value: row.jumlahRetur,
+                errorText: returError,
                 onChanged: (v) {
                   row.jumlahRetur = v;
                   onChanged();
@@ -224,7 +253,17 @@ class _NumberField extends StatelessWidget {
   final int? value;
   final ValueChanged<int?> onChanged;
 
-  const _NumberField({required this.rowKey, required this.label, required this.value, required this.onChanged});
+  /// Pesan error di bawah field (mis. "Melebihi kirim (10)"); null = tidak
+  /// ada error. Dipakai khusus untuk field Retur.
+  final String? errorText;
+
+  const _NumberField({
+    required this.rowKey,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.errorText,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +274,7 @@ class _NumberField extends StatelessWidget {
       initialValue: value == null ? '' : value.toString(),
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(labelText: label, isDense: true),
+      decoration: InputDecoration(labelText: label, isDense: true, errorText: errorText),
       onChanged: (text) => onChanged(text.isEmpty ? null : int.tryParse(text)),
     );
   }

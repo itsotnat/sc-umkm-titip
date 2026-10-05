@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_logo.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 /// Sesuai dokumen UI/UX Design Bagian 3 (Wireframe Login & Registrasi).
@@ -81,7 +82,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   validator: (value) => (value == null || value.isEmpty) ? 'Password wajib diisi' : null,
                 ),
-                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => ForgotPasswordScreen(initialEmail: _emailController.text.trim())),
+                    ),
+                    child: const Text('Lupa password?'),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: auth.isLoading ? null : _submit,
                   child: auth.isLoading

@@ -10,4 +10,18 @@ class AppConfig {
     'API_BASE_URL',
     defaultValue: 'https://api-backend.umkm-titip.web.id/api/v1',
   );
+
+  /// Mengubah path relatif dari server (mis. `/uploads/avatars/x.jpg`) menjadi
+  /// URL lengkap, dengan host yang sama seperti [apiBaseUrl] tanpa prefix `/api/v1`.
+  static String? mediaUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http')) return path;
+    final base = Uri.parse(apiBaseUrl);
+    return Uri(
+      scheme: base.scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+      path: path,
+    ).toString();
+  }
 }

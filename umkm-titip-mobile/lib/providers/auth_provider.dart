@@ -12,16 +12,70 @@ class AuthProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
   String? namaUsaha;
+  String? namaPemilik;
+  String? email;
+
+  /// Path relatif foto profil dari server (null = belum ada foto).
+  String? fotoUrl;
+
+  bool isUploadingFoto = false;
 
   Future<void> checkSession() async {
     final loggedIn = await _authService.isLoggedIn();
+    if (loggedIn) {
+      final local = await _authService.localProfile();
+      if (local != null) _applyUser(local);
+    }
     status = loggedIn ? AuthStatus.loggedIn : AuthStatus.loggedOut;
     notifyListeners();
+    // Segarkan di latar belakang; kalau offline/gagal, data lokal tetap dipakai.
+    if (loggedIn) refreshProfile();
   }
+
+  void _applyUser(Map<String, dynamic>? user) {
+    if (user == null) return;
+    namaUsaha = user['nama_usaha'] as String?;
+    namaPemilik = user['nama_pemilik'] as String?;
+    email = user['email'] as String?;
+    fotoUrl = user['foto_url'] as String?;
+  }
+
+  Future<void> refreshProfile() async {
+    try {
+      _applyUser(await _authService.fetchProfile());
+      notifyListeners();
+    } catch (_) {
+      // Offline atau token bermasalah: abaikan, pakai data lokal.
+    }
+  }
+
+  /// Mengunggah foto baru. Mengembalikan null kalau sukses, atau pesan error.
+  Future<String?> ubahFoto(String filePath) => _runFoto(() => _authService.uploadFoto(filePath));
+
+  Future<String?> hapusFoto() => _runFoto(_authService.deleteFoto);
+
+  Future<String?> _runFoto(Future<Map<String, dynamic>> Function() action) async {
+    isUploadingFoto = true;
+    notifyListeners();
+    try {
+      _applyUser(await action());
+      return null;
+    } catch (e) {
+      return ApiClient.messageFromError(e);
+    } finally {
+      isUploadingFoto = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> kirimKodReset(String email) => _authService.forgotPassword(email);
+
+  Future<void> resetPassword({required String email, required String code, required String newPassword}) =>
+      _authService.resetPassword(email: email, code: code, newPassword: newPassword);
 
   Future<bool> login(String email, String password) => _run(() async {
         final data = await _authService.login(email: email, password: password);
-        namaUsaha = data['user']?['nama_usaha'];
+        _applyUser(data['user'] as Map<String, dynamic>?);
       });
 
   Future<bool> register({
@@ -37,7 +91,7 @@ class AuthProvider extends ChangeNotifier {
           email: email,
           password: password,
         );
-        this.namaUsaha = data['user']?['nama_usaha'];
+        _applyUser(data['user'] as Map<String, dynamic>?);
       });
 
   Future<bool> _run(Future<void> Function() action) async {
@@ -59,6 +113,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authService.logout();
+    namaUsaha = namaPemilik = email = fotoUrl = null;
     status = AuthStatus.loggedOut;
     notifyListeners();
   }

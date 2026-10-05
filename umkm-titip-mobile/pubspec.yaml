@@ -42,6 +42,12 @@ dependencies:
   # Buka aplikasi WhatsApp langsung dari ikon chat di daftar Outlet
   url_launcher: ^6.3.1
 
+  # Ikon logo WhatsApp asli (Icons.chat bawaan Flutter cuma bubble chat generik)
+  font_awesome_flutter: ^11.0.0
+
+  # Ambil/pilih foto profil dari kamera atau galeri (sekaligus mengompres ukurannya)
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

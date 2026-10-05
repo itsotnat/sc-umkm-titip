@@ -1,4 +1,5 @@
 const authService = require('./auth.service');
+const profileService = require('./profile.service');
 const { created, ok } = require('../../utils/response');
 const { asyncHandler } = require('../../utils/asyncHandler');
 
@@ -20,4 +21,26 @@ const login = asyncHandler(async (req, res) => {
   ok(res, result);
 });
 
-module.exports = { register, login };
+const forgotPassword = asyncHandler(async (req, res) => {
+  ok(res, await authService.forgotPassword({ email: req.body.email }));
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, code, new_password } = req.body;
+  ok(res, await authService.resetPassword({ email, code, newPassword: new_password }));
+});
+
+const me = asyncHandler(async (req, res) => {
+  ok(res, { user: await authService.getProfile(req.userId) });
+});
+
+const uploadFoto = asyncHandler(async (req, res) => {
+  const user = await profileService.setFoto(req.userId, req.file && req.file.buffer);
+  ok(res, { user });
+});
+
+const deleteFoto = asyncHandler(async (req, res) => {
+  ok(res, { user: await profileService.deleteFoto(req.userId) });
+});
+
+module.exports = { register, login, forgotPassword, resetPassword, me, uploadFoto, deleteFoto };

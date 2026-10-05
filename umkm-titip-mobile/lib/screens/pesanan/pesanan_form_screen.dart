@@ -12,6 +12,11 @@ class _ItemPesanan {
   int jumlah = 1;
 }
 
+/// Id penanda untuk opsi "Pemesan baru" di dalam dropdown Autocomplete,
+/// supaya bisa dibedakan dari pemesan yang sudah tersimpan tanpa perlu
+/// tipe union/sealed terpisah.
+const _idPemesanBaru = '__pemesan_baru__';
+
 /// Form Pesanan, sesuai dokumen UI/UX Design Bagian 7.
 class PesananFormScreen extends StatefulWidget {
   const PesananFormScreen({super.key});
@@ -98,15 +103,69 @@ class _PesananFormScreenState extends State<PesananFormScreen> {
             Autocomplete<Pemesan>(
               displayStringForOption: (p) => p.namaPemesan,
               optionsBuilder: (textEditingValue) {
-                if (textEditingValue.text.isEmpty) return const Iterable<Pemesan>.empty();
-                return pesananProvider.daftarPemesan.where(
-                  (p) => p.namaPemesan.toLowerCase().contains(textEditingValue.text.toLowerCase()),
-                );
+                final query = textEditingValue.text.trim();
+                if (query.isEmpty) return const Iterable<Pemesan>.empty();
+                final cocok = pesananProvider.daftarPemesan
+                    .where((p) => p.namaPemesan.toLowerCase().contains(query.toLowerCase()))
+                    .toList();
+                // Kalau tidak ada nama yang persis sama (tanpa memandang huruf
+                // besar/kecil), tampilkan opsi "Pemesan baru" di baris terakhir
+                // supaya penggunanya tahu nama ini akan dibuat sebagai pemesan baru.
+                final adaYangSamaPersis = cocok.any((p) => p.namaPemesan.toLowerCase() == query.toLowerCase());
+                if (!adaYangSamaPersis) {
+                  cocok.add(Pemesan(id: _idPemesanBaru, namaPemesan: query));
+                }
+                return cocok;
               },
               onSelected: (p) {
-                _pemesanTerpilih = p;
-                _pemesanController.text = p.namaPemesan;
-                _whatsappController.text = p.noWhatsapp ?? '';
+                if (p.id == _idPemesanBaru) {
+                  _pemesanTerpilih = null;
+                  _pemesanController.text = p.namaPemesan;
+                } else {
+                  _pemesanTerpilih = p;
+                  _pemesanController.text = p.namaPemesan;
+                  _whatsappController.text = p.noWhatsapp ?? '';
+                }
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                final list = options.toList();
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(12),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 240),
+                      child: ListView.separated(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: list.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final option = list[index];
+                          if (option.id == _idPemesanBaru) {
+                            return ListTile(
+                              leading: const Icon(Icons.add, color: Colors.green),
+                              title: Text(
+                                'Pemesan baru "${option.namaPemesan}"',
+                                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                              ),
+                              onTap: () => onSelected(option),
+                            );
+                          }
+                          return ListTile(
+                            title: Text(option.namaPemesan, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            trailing: Text(
+                              option.noWhatsapp?.isNotEmpty == true ? option.noWhatsapp! : '-',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            onTap: () => onSelected(option),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
               },
               fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
                 return TextFormField(

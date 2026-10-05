@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -106,7 +107,7 @@ class _OutletScreenState extends State<OutletScreen> {
                             children: [
                               if (outlet.noWhatsapp?.isNotEmpty == true)
                                 IconButton(
-                                  icon: const Icon(Icons.chat, color: Colors.green),
+                                  icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
                                   tooltip: 'Chat WhatsApp',
                                   onPressed: () => _bukaWhatsapp(context, outlet.noWhatsapp),
                                 ),

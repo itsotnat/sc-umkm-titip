@@ -13,6 +13,8 @@ services:
       DB_HOST: db
     depends_on:
       - db
+    volumes:
+      - uploads_data:/usr/src/app/uploads
     expose:
       - "3000"
 
@@ -46,5 +48,6 @@ services:
 
 volumes:
   db_data:
+  uploads_data:
   certbot_www:
   certbot_conf:

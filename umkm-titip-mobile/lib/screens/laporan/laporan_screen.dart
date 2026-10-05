@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/laporan_provider.dart';
 import '../../widgets/app_bar_brand.dart';
+import '../../widgets/profile_action.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/format_utils.dart';
 import '../../widgets/status_badge.dart';
@@ -131,6 +132,7 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
     return Scaffold(
       appBar: AppBar(
         title: const AppBarBrand(label: 'Laporan'),
+        actions: const [ProfileAction()],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [Tab(text: 'Titip Outlet'), Tab(text: 'Pesanan')],

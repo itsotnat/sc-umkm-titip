@@ -9,6 +9,7 @@ import '../../providers/pesanan_provider.dart';
 import '../../providers/produk_provider.dart';
 import '../../repositories/titip_repository.dart';
 import '../../widgets/app_bar_brand.dart';
+import '../../widgets/profile_action.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/format_utils.dart';
 import '../../widgets/status_badge.dart';
@@ -90,10 +91,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Pesanan yang statusnya sudah lewat tanggal jatuh tempo sengaja tidak
     // ditampilkan di sini lagi (hilang dari Beranda), tapi tetap ada di menu
     // Pesanan dan tetap dihitung di Laporan (progress & keuangan).
-    final pesananJatuhTempo = pesananProvider.items.where((p) => !p.statusSelesai && !p.jatuhTempoLewat).take(5).toList();
+    final pesananJatuhTempo = pesananProvider.semuaItems.where((p) => !p.statusSelesai && !p.jatuhTempoLewat).take(5).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const AppBarBrand(label: 'Beranda')),
+      appBar: AppBar(title: const AppBarBrand(label: 'Beranda'), actions: const [ProfileAction()]),
       body: RefreshIndicator(
         onRefresh: _loadAll,
         child: ListView(

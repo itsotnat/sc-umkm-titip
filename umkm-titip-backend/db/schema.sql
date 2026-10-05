@@ -16,6 +16,22 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash  VARCHAR(255) NOT NULL,
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Foto profil (path relatif, mis. /uploads/avatars/<uuid>.jpg). ALTER dipisah
+-- supaya `npm run db:migrate` juga aman dijalankan di database yang sudah berjalan.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS foto_url VARCHAR(255);
+
+-- =========================================================
+-- password_reset (kode OTP 6 digit untuk fitur lupa password)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS password_reset (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash   VARCHAR(128) NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    attempts    INT NOT NULL DEFAULT 0,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_password_reset_user_id ON password_reset(user_id);
 
 -- =========================================================
 -- produk

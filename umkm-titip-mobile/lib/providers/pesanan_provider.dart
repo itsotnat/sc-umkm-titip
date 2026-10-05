@@ -9,6 +9,14 @@ class PesananProvider extends ChangeNotifier {
   final PemesanRepository _pemesanRepository = PemesanRepository();
 
   List<Pesanan> items = [];
+
+  /// Selalu berisi SEMUA pesanan tanpa memandang [filter] yang sedang aktif
+  /// di menu Pesanan (Semua/Belum Selesai/Selesai). Dipakai oleh Beranda
+  /// (bagian "Pesanan Jatuh Tempo") supaya tampilannya tidak ikut berubah
+  /// saat pengguna pindah tab di menu Pesanan — bug sebelumnya: Beranda
+  /// memakai [items] yang sama dengan menu Pesanan, jadi ikut ter-filter.
+  List<Pesanan> semuaItems = [];
+
   List<Pemesan> daftarPemesan = [];
   bool isLoading = false;
   String filter = 'semua'; // semua | belum_selesai | selesai
@@ -18,6 +26,7 @@ class PesananProvider extends ChangeNotifier {
     notifyListeners();
     final status = filter == 'semua' ? null : filter;
     items = await _repository.getAll(filterStatus: status);
+    semuaItems = filter == 'semua' ? items : await _repository.getAll(filterStatus: null);
     daftarPemesan = await _pemesanRepository.getAll();
     isLoading = false;
     notifyListeners();

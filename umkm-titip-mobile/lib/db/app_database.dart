@@ -21,7 +21,7 @@ class AppDatabase {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -54,6 +54,11 @@ class AppDatabase {
       ''');
       await db.execute('DROP TABLE transaksi_titip_old');
       await db.execute('CREATE INDEX idx_titip_outlet_tanggal ON transaksi_titip(outlet_id, tanggal)');
+    }
+    // v2 -> v3: simpan path foto profil di sesi lokal supaya avatar langsung
+    // tampil saat aplikasi dibuka, sebelum (atau tanpa) refresh dari server.
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE auth_session ADD COLUMN foto_url TEXT');
     }
   }
 
@@ -133,6 +138,7 @@ class AppDatabase {
         nama_usaha TEXT,
         nama_pemilik TEXT,
         email TEXT,
+        foto_url TEXT,
         last_sync_at TEXT
       )
     ''');

@@ -43,6 +43,7 @@ class AuthService {
       'nama_usaha': user['nama_usaha'],
       'nama_pemilik': user['nama_pemilik'],
       'email': user['email'],
+      'foto_url': user['foto_url'],
       'last_sync_at': null,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
 
@@ -73,6 +74,59 @@ class AuthService {
     } catch (_) {
       // Lihat catatan di atas.
     }
+  }
+
+  /// Kode OTP 6 digit dikirim ke email. Server selalu membalas sukses, ada atau
+  /// tidaknya email di database (anti-enumerasi).
+  Future<void> forgotPassword(String email) async {
+    await _dio.post('/auth/forgot-password', data: {'email': email});
+  }
+
+  Future<void> resetPassword({required String email, required String code, required String newPassword}) async {
+    await _dio.post('/auth/reset-password', data: {'email': email, 'code': code, 'new_password': newPassword});
+  }
+
+  /// Profil lokal dari sesi login terakhir (bisa dipakai offline).
+  Future<Map<String, dynamic>?> localProfile() async {
+    final db = await AppDatabase.instance.database;
+    final rows = await db.query('auth_session', where: 'id = 1', limit: 1);
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  /// Ambil profil terbaru dari server lalu simpan ke sesi lokal.
+  Future<Map<String, dynamic>> fetchProfile() async {
+    final response = await _dio.get('/auth/me');
+    return _saveUser(response.data['data']['user'] as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>> uploadFoto(String filePath) async {
+    final form = FormData.fromMap({'foto': await MultipartFile.fromFile(filePath)});
+    final response = await _dio.post(
+      '/auth/me/foto',
+      data: form,
+      options: Options(sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 30)),
+    );
+    return _saveUser(response.data['data']['user'] as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>> deleteFoto() async {
+    final response = await _dio.delete('/auth/me/foto');
+    return _saveUser(response.data['data']['user'] as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>> _saveUser(Map<String, dynamic> user) async {
+    final db = await AppDatabase.instance.database;
+    await db.update(
+      'auth_session',
+      {
+        'nama_usaha': user['nama_usaha'],
+        'nama_pemilik': user['nama_pemilik'],
+        'email': user['email'],
+        'foto_url': user['foto_url'],
+      },
+      where: 'id = 1',
+    );
+    return user;
   }
 
   Future<bool> isLoggedIn() async {

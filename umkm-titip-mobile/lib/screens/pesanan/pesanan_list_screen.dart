@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/pesanan_provider.dart';
 import '../../widgets/app_bar_brand.dart';
+import '../../widgets/profile_action.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/format_utils.dart';
 import '../../widgets/status_badge.dart';
@@ -38,6 +39,7 @@ class _PesananListScreenState extends State<PesananListScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const AppBarBrand(label: 'Pesanan'),
+          actions: const [ProfileAction()],
           bottom: TabBar(
             tabs: const [Tab(text: 'Semua'), Tab(text: 'Belum Selesai'), Tab(text: 'Selesai')],
             onTap: (index) {
