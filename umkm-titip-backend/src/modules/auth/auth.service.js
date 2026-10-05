@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userRepository = require('./user.repository');
 const { sendMail } = require('../../config/mailer');
+const { buildResetEmail } = require('./reset-email');
 const { ApiError } = require('../../utils/ApiError');
 
 const MIN_PASSWORD = 8;
@@ -114,18 +115,7 @@ async function forgotPassword({ email }) {
   try {
     await sendMail({
       to: user.email,
-      subject: 'Kode reset password UMKM Titip',
-      text:
-        `Halo ${user.nama_pemilik},\n\n` +
-        `Kode reset password Anda: ${code}\n` +
-        `Kode berlaku ${RESET_CODE_TTL_MENIT} menit. Jangan bagikan kode ini ke siapa pun.\n\n` +
-        'Jika Anda tidak meminta reset password, abaikan email ini.',
-      html:
-        `<p>Halo ${escapeHtml(user.nama_pemilik)},</p>` +
-        `<p>Kode reset password Anda:</p>` +
-        `<p style="font-size:28px;font-weight:bold;letter-spacing:6px">${code}</p>` +
-        `<p>Kode berlaku ${RESET_CODE_TTL_MENIT} menit. Jangan bagikan kode ini ke siapa pun.</p>` +
-        '<p>Jika Anda tidak meminta reset password, abaikan email ini.</p>',
+      ...buildResetEmail({ nama: user.nama_pemilik, email: user.email, code, ttlMenit: RESET_CODE_TTL_MENIT }),
     });
   } catch (err) {
     // Jangan bocorkan kegagalan SMTP ke klien (tetap respons generik), cukup dicatat.
@@ -162,10 +152,6 @@ async function resetPassword({ email, code, newPassword }) {
   await userRepository.updatePassword(user.id, passwordHash);
   await userRepository.deleteResetCodes(user.id);
   return { message: 'Password berhasil diubah. Silakan masuk dengan password baru.' };
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 module.exports = { register, login, getProfile, forgotPassword, resetPassword };
