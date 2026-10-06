@@ -58,6 +58,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
                 ),
                 const SizedBox(height: 32),
+                if (auth.sessionExpired) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade300),
+                    ),
+                    child: Text(
+                      (auth.sessionReplaced
+                              ? 'Akun Anda dipakai masuk di perangkat lain, jadi perangkat ini dikeluarkan. '
+                              : 'Sesi Anda berakhir. ') +
+                          'Silakan masuk lagi. Data yang belum tersinkron tetap aman di HP '
+                          'dan akan terkirim setelah Anda masuk dengan akun yang sama.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,

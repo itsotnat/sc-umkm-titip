@@ -21,7 +21,7 @@ class AppDatabase {
 
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -60,6 +60,20 @@ class AppDatabase {
     if (oldVersion < 3) {
       await db.execute('ALTER TABLE auth_session ADD COLUMN foto_url TEXT');
     }
+    // v3 -> v4: antrean penghapusan yang menunggu dikirim ke server.
+    if (oldVersion < 4) {
+      await _createPendingDelete(db);
+    }
+  }
+
+  Future<void> _createPendingDelete(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS pending_delete (
+        entity TEXT NOT NULL,
+        id TEXT NOT NULL,
+        PRIMARY KEY (entity, id)
+      )
+    ''');
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -142,6 +156,8 @@ class AppDatabase {
         last_sync_at TEXT
       )
     ''');
+
+    await _createPendingDelete(db);
   }
 
   /// Dipanggil saat logout: mengosongkan seluruh data lokal milik akun sebelumnya,
@@ -156,6 +172,7 @@ class AppDatabase {
       'transaksi_titip',
       'pesanan',
       'pesanan_detail',
+      'pending_delete',
       'auth_session',
     ]) {
       batch.delete(table);

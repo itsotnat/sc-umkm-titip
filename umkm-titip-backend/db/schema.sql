@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Foto profil (path relatif, mis. /uploads/avatars/<uuid>.jpg). ALTER dipisah
 -- supaya `npm run db:migrate` juga aman dijalankan di database yang sudah berjalan.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS foto_url VARCHAR(255);
+-- Satu akun = satu sesi aktif: login baru menggantikan sesi lama.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active_session_id UUID;
 
 -- =========================================================
 -- password_reset (kode OTP 6 digit untuk fitur lupa password)

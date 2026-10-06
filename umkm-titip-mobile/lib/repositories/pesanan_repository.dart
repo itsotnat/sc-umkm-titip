@@ -6,6 +6,8 @@ import '../models/pemesan.dart';
 import '../models/pesanan.dart';
 import '../models/pesanan_detail.dart';
 import '../services/api_client.dart';
+import '../services/pending_delete_store.dart';
+import '../services/sync_manager.dart';
 
 /// Sama seperti ProdukRepository/OutletRepository: pesanan dikirim ke server
 /// dulu (butuh koneksi), baru dicache lokal dengan id resmi dari server,
@@ -103,6 +105,7 @@ class PesananRepository {
           });
         }
       });
+      SyncManager.instance.requestSync();
       return pesanan;
     }
   }
@@ -127,6 +130,7 @@ class PesananRepository {
       if (statusSelesai != null) values['status_selesai'] = statusSelesai ? 1 : 0;
       if (statusLunas != null) values['status_lunas'] = statusLunas ? 1 : 0;
       await db.update('pesanan', values, where: 'id = ?', whereArgs: [id]);
+      SyncManager.instance.requestSync();
     }
   }
 
@@ -139,7 +143,9 @@ class PesananRepository {
     try {
       await ApiClient.instance.dio.delete('/pesanan/$id');
     } catch (_) {
-      // Best-effort, sama seperti ProdukRepository.delete.
+      // Sama seperti ProdukRepository.delete: dicatat di antrean hapus.
+      await PendingDeleteStore.enqueue('pesanan', id);
+      SyncManager.instance.requestSync();
     }
   }
 
@@ -162,6 +168,10 @@ class PesananRepository {
         updatedAt: DateTime.tryParse(item['updated_at']?.toString() ?? '') ?? DateTime.now(),
       );
       batch.insert('pesanan', pesanan.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+
+      // Id detail di server berbeda dari id lokal; hapus dulu detail lokal
+      // pesanan ini supaya item tidak dobel setelah ditimpa data server.
+      batch.delete('pesanan_detail', where: 'pesanan_id = ?', whereArgs: [item['id']]);
 
       final detailItems = (item['items'] as List<dynamic>? ?? const []);
       for (final detail in detailItems) {
@@ -211,6 +221,7 @@ class PemesanRepository {
     } catch (_) {
       final pemesan = Pemesan(id: _uuid.v4(), namaPemesan: namaPemesan, noWhatsapp: noWhatsapp);
       await db.insert('pemesan', pemesan.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      SyncManager.instance.requestSync();
       return pemesan;
     }
   }

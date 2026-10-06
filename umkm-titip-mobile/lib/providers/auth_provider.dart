@@ -2,11 +2,21 @@ import 'package:flutter/foundation.dart';
 
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
+import '../services/sync_manager.dart';
 
 enum AuthStatus { unknown, loggedIn, loggedOut }
 
 class AuthProvider extends ChangeNotifier {
+  AuthProvider() {
+    // Server membalas 401 (token kedaluwarsa) di endpoint mana pun -> sesi berakhir.
+    ApiClient.onUnauthorized = _handleSessionExpired;
+  }
+
   final AuthService _authService = AuthService();
+
+  /// True bila pengguna dikeluarkan karena token kedaluwarsa (bukan logout sendiri).
+  bool sessionExpired = false;
+  bool sessionReplaced = false; // true = akun dipakai login di perangkat lain
 
   AuthStatus status = AuthStatus.unknown;
   bool isLoading = false;
@@ -28,8 +38,27 @@ class AuthProvider extends ChangeNotifier {
     }
     status = loggedIn ? AuthStatus.loggedIn : AuthStatus.loggedOut;
     notifyListeners();
-    // Segarkan di latar belakang; kalau offline/gagal, data lokal tetap dipakai.
-    if (loggedIn) refreshProfile();
+    if (loggedIn) {
+      // Segarkan di latar belakang; kalau offline/gagal, data lokal tetap dipakai.
+      refreshProfile();
+      SyncManager.instance.start();
+    }
+  }
+
+  Future<void> _handleSessionExpired(String? code) async {
+    if (status != AuthStatus.loggedIn) return;
+    sessionReplaced = code == 'SESSION_REPLACED';
+    await _authService.expireSession();
+    SyncManager.instance.stop();
+    sessionExpired = true;
+    status = AuthStatus.loggedOut;
+    notifyListeners();
+  }
+
+  void dismissSessionExpired() {
+    sessionExpired = false;
+    sessionReplaced = false;
+    notifyListeners();
   }
 
   void _applyUser(Map<String, dynamic>? user) {
@@ -101,6 +130,9 @@ class AuthProvider extends ChangeNotifier {
     try {
       await action();
       status = AuthStatus.loggedIn;
+      sessionExpired = false;
+      sessionReplaced = false;
+      SyncManager.instance.start();
       return true;
     } catch (e) {
       errorMessage = ApiClient.messageFromError(e);
@@ -112,7 +144,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    SyncManager.instance.stop();
     await _authService.logout();
+    sessionExpired = false;
     namaUsaha = namaPemilik = email = fotoUrl = null;
     status = AuthStatus.loggedOut;
     notifyListeners();

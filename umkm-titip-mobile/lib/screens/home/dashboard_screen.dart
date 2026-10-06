@@ -9,7 +9,9 @@ import '../../providers/pesanan_provider.dart';
 import '../../providers/produk_provider.dart';
 import '../../repositories/titip_repository.dart';
 import '../../widgets/app_bar_brand.dart';
+import '../../services/sync_manager.dart';
 import '../../widgets/profile_action.dart';
+import '../../widgets/sync_status_banner.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/format_utils.dart';
 import '../../widgets/status_badge.dart';
@@ -54,6 +56,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadAll() async {
+    // Kirim dulu perubahan yang tertunda, supaya data yang dimuat ulang sudah mutakhir.
+    await SyncManager.instance.syncAll();
+    if (!mounted) return;
     final today = DateTime.now();
     await Future.wait([
       context.read<OutletProvider>().load(),
@@ -100,6 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            const SyncStatusBanner(),
             SizedBox(
               height: 96,
               child: ListView(
@@ -195,39 +201,29 @@ class _OutletCard extends StatelessWidget {
     // - ada baris kirim, tapi ada yang retur-nya masih kosong -> Retur Belum Diinput
     // - semua baris kirim sudah ada angka retur-nya (termasuk 0) -> Sudah Diinput
     final returBelumLengkap = transaksiHariIni.any((t) => t.jumlahRetur == null);
-    final String label;
-    String subtitle;
-    if (transaksiHariIni.isEmpty) {
-      label = 'Tidak Dikirim';
-      subtitle = outlet.alamat?.isNotEmpty == true ? outlet.alamat! : 'Ketuk untuk input titip hari ini';
-    } else if (returBelumLengkap) {
-      label = 'Retur Belum Diinput';
-      final totalKirim = transaksiHariIni.fold<int>(0, (s, t) => s + t.jumlahKirim);
-      subtitle = 'Kirim $totalKirim · Retur belum diisi semua';
-    } else {
-      label = 'Sudah Diinput';
-      final totalKirim = transaksiHariIni.fold<int>(0, (s, t) => s + t.jumlahKirim);
-      final totalRetur = transaksiHariIni.fold<int>(0, (s, t) => s + (t.jumlahRetur ?? 0));
-      subtitle = 'Kirim $totalKirim · Retur $totalRetur · Terjual ${totalKirim - totalRetur}';
-    }
+    final dikirim = transaksiHariIni.isNotEmpty;
+    final label = !dikirim ? 'Tidak Dikirim' : (returBelumLengkap ? 'Retur Belum Diinput' : 'Sudah Diinput');
 
+    // Tampilan minimal: nama outlet di atas (lebar penuh, tidak terjepit badge),
+    // badge status kecil di bawahnya.
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: const CircleAvatar(child: Icon(Icons.storefront)),
-        title: Text(outlet.namaOutlet),
-        subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-        trailing: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              StatusBadge(label: label),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right),
-            ],
+        title: Text(
+          outlet.namaOutlet,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: StatusBadge(label: label),
           ),
         ),
+        trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
     );

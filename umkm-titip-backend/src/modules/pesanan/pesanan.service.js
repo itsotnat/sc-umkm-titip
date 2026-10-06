@@ -31,7 +31,33 @@ async function createPesanan(userId, { pemesan, pemesanId, tanggalJatuhTempo, it
   try {
     await client.query('BEGIN');
 
+    // Semua id yang dirujuk klien harus milik akun ini (FK hanya mengecek keberadaan, bukan kepemilikan).
+    const produkIds = [...new Set(items.map((i) => i && i.produk_id).filter(Boolean))];
+    if (produkIds.length) {
+      let owned;
+      try {
+        owned = await client.query(
+          'SELECT COUNT(*)::int AS n FROM produk WHERE id = ANY($1::uuid[]) AND user_id = $2',
+          [produkIds, userId]
+        );
+      } catch (e) {
+        throw ApiError.badRequest('produk_id tidak valid');
+      }
+      if (owned.rows[0].n !== produkIds.length) {
+        throw ApiError.notFound('Produk tidak ditemukan');
+      }
+    }
+
     let resolvedPemesanId = pemesanId;
+    if (resolvedPemesanId) {
+      let ok;
+      try {
+        ok = await client.query('SELECT 1 FROM pemesan WHERE id = $1::uuid AND user_id = $2', [resolvedPemesanId, userId]);
+      } catch (e) {
+        throw ApiError.badRequest('pemesan_id tidak valid');
+      }
+      if (ok.rowCount === 0) throw ApiError.notFound('Pemesan tidak ditemukan');
+    }
     if (!resolvedPemesanId) {
       if (!pemesan || !pemesan.nama_pemesan) {
         throw ApiError.badRequest('pemesan_id atau data pemesan baru wajib diisi');

@@ -18,15 +18,19 @@ async function findByOutletAndTanggal(userId, outletId, tanggal) {
  */
 async function upsert(userId, item) {
   const { id, outlet_id, produk_id, tanggal, jumlah_kirim, jumlah_retur } = item;
+  // Outlet & produk wajib milik user yang sama: FK di DB hanya memeriksa
+  // keberadaan, bukan kepemilikan, jadi dicek di sini (isolasi multi-tenant).
   const { rows } = await pool.query(
     `INSERT INTO transaksi_titip (id, user_id, outlet_id, produk_id, tanggal, jumlah_kirim, jumlah_retur, sync_status, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'synced', now())
+     SELECT $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::date, $6::int, $7::int, 'synced', now()
+     WHERE EXISTS (SELECT 1 FROM outlet WHERE id = $3::uuid AND user_id = $2::uuid)
+       AND EXISTS (SELECT 1 FROM produk WHERE id = $4::uuid AND user_id = $2::uuid)
      ON CONFLICT (id) DO UPDATE SET
        jumlah_kirim = EXCLUDED.jumlah_kirim,
        jumlah_retur = EXCLUDED.jumlah_retur,
        sync_status = 'synced',
        updated_at = now()
-     WHERE transaksi_titip.user_id = $2
+     WHERE transaksi_titip.user_id = $2::uuid
      RETURNING id`,
     [id, userId, outlet_id, produk_id, tanggal, jumlah_kirim, jumlah_retur]
   );

@@ -23,9 +23,30 @@ class ApiClient {
           }
           handler.next(options);
         },
+        onError: (error, handler) {
+          // Token kedaluwarsa/tidak valid: beri tahu AuthProvider (kecuali pada
+          // endpoint login/daftar/reset, yang memang bisa membalas 401/400 biasa).
+          final path = error.requestOptions.path;
+          final publik = _publicPaths.any(path.endsWith);
+          if (error.response?.statusCode == 401 && !publik) {
+            String? code;
+            final data = error.response?.data;
+            if (data is Map && data['error'] is Map) {
+              code = data['error']['code']?.toString();
+            }
+            onUnauthorized?.call(code);
+          }
+          handler.next(error);
+        },
       ),
     );
   }
+
+  static const _publicPaths = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password'];
+
+  /// Dipanggil saat server membalas 401 pada endpoint yang butuh login.
+  /// [code] = kode error server, mis. SESSION_REPLACED bila akun dipakai login di perangkat lain.
+  static Future<void> Function(String? code)? onUnauthorized;
 
   static final ApiClient instance = ApiClient._internal();
   late final Dio _dio;

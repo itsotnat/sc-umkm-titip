@@ -4,6 +4,8 @@ import 'package:uuid/uuid.dart';
 import '../db/app_database.dart';
 import '../models/produk.dart';
 import '../services/api_client.dart';
+import '../services/pending_delete_store.dart';
+import '../services/sync_manager.dart';
 
 /// Repository produk. Tambah/edit dikirim langsung ke server (data master,
 /// butuh koneksi internet), lalu hasil dari server (termasuk id resmi)
@@ -42,6 +44,7 @@ class ProdukRepository {
     } catch (_) {
       final produk = Produk(id: _uuid.v4(), namaProduk: namaProduk, hpp: hpp, hargaJual: hargaJual);
       await db.insert('produk', produk.toMap());
+      SyncManager.instance.requestSync();
       return produk;
     }
   }
@@ -71,6 +74,7 @@ class ProdukRepository {
         where: 'id = ?',
         whereArgs: [produk.id],
       );
+      SyncManager.instance.requestSync();
     }
   }
 
@@ -81,9 +85,10 @@ class ProdukRepository {
     try {
       await ApiClient.instance.dio.delete('/produk/$id');
     } catch (_) {
-      // Tidak apa-apa jika sedang offline; server tidak akan tahu, tapi ini
-      // dianggap batas MVP karena penghapusan jarang terjadi dan bisa
-      // diselaraskan manual bila diperlukan.
+      // Offline: catat di antrean hapus, dikirim otomatis lewat SyncManager
+      // begitu koneksi kembali (idempoten di server).
+      await PendingDeleteStore.enqueue('produk', id);
+      SyncManager.instance.requestSync();
     }
   }
 

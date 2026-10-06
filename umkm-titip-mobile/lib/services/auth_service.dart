@@ -7,6 +7,7 @@ import '../repositories/pesanan_repository.dart';
 import '../repositories/produk_repository.dart';
 import 'api_client.dart';
 import 'secure_storage_service.dart';
+import 'sync_manager.dart';
 
 class AuthService {
   final Dio _dio = ApiClient.instance.dio;
@@ -37,6 +38,15 @@ class AuthService {
     await SecureStorageService.saveToken(token);
 
     final db = await AppDatabase.instance.database;
+
+    // Sesi lama berakhir (token kedaluwarsa) lalu login dengan akun yang SAMA:
+    // data lokal yang belum tersinkron dipertahankan. Akun BERBEDA: data akun
+    // sebelumnya dibuang supaya tidak tercampur.
+    final lama = await db.query('auth_session', where: 'id = 1', limit: 1);
+    if (lama.isNotEmpty && lama.first['user_id'] != user['id']) {
+      await AppDatabase.instance.clearAll();
+    }
+
     await db.insert('auth_session', {
       'id': 1,
       'user_id': user['id'],
@@ -46,6 +56,9 @@ class AuthService {
       'foto_url': user['foto_url'],
       'last_sync_at': null,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+    // Kirim dulu data yang masih pending, sebelum ditimpa data dari server.
+    await SyncManager.instance.syncAll();
 
     // Tarik ulang seluruh data master dari server setiap kali berhasil
     // login/register, supaya data tetap ada walau sebelumnya sempat logout
@@ -133,6 +146,10 @@ class AuthService {
     final token = await SecureStorageService.readToken();
     return token != null && token.isNotEmpty;
   }
+
+  /// Sesi habis (401): hanya token yang dihapus. Data lokal dipertahankan
+  /// supaya perubahan yang belum tersinkron tidak hilang.
+  Future<void> expireSession() => SecureStorageService.clearToken();
 
   Future<void> logout() async {
     await SecureStorageService.clearToken();

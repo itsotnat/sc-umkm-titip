@@ -4,6 +4,8 @@ import 'package:uuid/uuid.dart';
 import '../db/app_database.dart';
 import '../models/outlet.dart';
 import '../services/api_client.dart';
+import '../services/pending_delete_store.dart';
+import '../services/sync_manager.dart';
 
 /// Sama seperti ProdukRepository: tambah/edit outlet dikirim ke server dulu
 /// (data master, butuh koneksi), baru dicache lokal dengan id resmi dari
@@ -39,6 +41,7 @@ class OutletRepository {
     } catch (_) {
       final outlet = Outlet(id: _uuid.v4(), namaOutlet: namaOutlet, alamat: alamat, noWhatsapp: noWhatsapp);
       await db.insert('outlet', outlet.toMap());
+      SyncManager.instance.requestSync();
       return outlet;
     }
   }
@@ -74,6 +77,7 @@ class OutletRepository {
         where: 'id = ?',
         whereArgs: [outlet.id],
       );
+      SyncManager.instance.requestSync();
     }
   }
 
@@ -84,6 +88,8 @@ class OutletRepository {
       await ApiClient.instance.dio.delete('/outlet/$id');
     } catch (_) {
       // Lihat catatan yang sama di ProdukRepository.delete.
+      await PendingDeleteStore.enqueue('outlet', id);
+      SyncManager.instance.requestSync();
     }
   }
 

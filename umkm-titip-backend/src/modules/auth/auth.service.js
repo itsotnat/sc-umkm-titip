@@ -12,8 +12,8 @@ const RESET_RESEND_COOLDOWN_DETIK = 60;
 const RESET_MAX_ATTEMPTS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function signToken(userId) {
-  return jwt.sign({ sub: userId }, process.env.JWT_SECRET, {
+function signToken(userId, sid) {
+  return jwt.sign({ sub: userId, sid }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 }
@@ -52,7 +52,9 @@ async function register({ namaUsaha, namaPemilik, email, noHp, password }) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await userRepository.create({ namaUsaha, namaPemilik, email, noHp, passwordHash });
-  const token = signToken(user.id);
+  const sid = crypto.randomUUID();
+  await userRepository.setActiveSession(user.id, sid);
+  const token = signToken(user.id, sid);
   return { user, token };
 }
 
@@ -71,8 +73,12 @@ async function login({ email, password }) {
     throw new ApiError(401, 'INVALID_CREDENTIALS', 'Email atau password salah');
   }
 
-  const token = signToken(user.id);
+  // Login baru menggantikan sesi lama: token di perangkat sebelumnya langsung tidak berlaku.
+  const sid = crypto.randomUUID();
+  await userRepository.setActiveSession(user.id, sid);
+  const token = signToken(user.id, sid);
   delete user.password_hash;
+  delete user.active_session_id;
   return { user, token };
 }
 
@@ -151,6 +157,7 @@ async function resetPassword({ email, code, newPassword }) {
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await userRepository.updatePassword(user.id, passwordHash);
   await userRepository.deleteResetCodes(user.id);
+  await userRepository.setActiveSession(user.id, null); // keluarkan semua perangkat
   return { message: 'Password berhasil diubah. Silakan masuk dengan password baru.' };
 }
 

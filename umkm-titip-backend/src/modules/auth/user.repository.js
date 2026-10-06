@@ -34,6 +34,15 @@ async function updateFoto(userId, fotoUrl) {
   return rows[0] || null;
 }
 
+async function setActiveSession(userId, sid) {
+  await pool.query('UPDATE users SET active_session_id = $1 WHERE id = $2', [sid, userId]);
+}
+
+async function getActiveSession(userId) {
+  const { rows } = await pool.query('SELECT active_session_id FROM users WHERE id = $1', [userId]);
+  return rows[0] ? rows[0].active_session_id : undefined; // undefined = akun tidak ada
+}
+
 // --- password_reset ---------------------------------------------------------
 
 async function replaceResetCode(userId, codeHash, expiresAt) {
@@ -76,6 +85,8 @@ module.exports = {
   create,
   updatePassword,
   updateFoto,
+  setActiveSession,
+  getActiveSession,
   replaceResetCode,
   findResetCode,
   incrementResetAttempts,

@@ -54,6 +54,6 @@ class TitipProvider extends ChangeNotifier {
       );
     }
     // Coba sinkron langsung bila online; bila gagal/offline, akan dicoba lagi nanti.
-    await SyncManager.instance.syncPendingTitip();
+    await SyncManager.instance.syncAll();
   }
 }

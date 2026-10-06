@@ -9,6 +9,7 @@ import 'providers/produk_provider.dart';
 import 'providers/titip_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'services/sync_manager.dart';
 import 'utils/theme.dart';
 import 'widgets/app_logo.dart';
 
@@ -29,6 +30,7 @@ class UmkmTitipApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PesananProvider()),
         ChangeNotifierProvider(create: (_) => LaporanProvider()),
         ChangeNotifierProvider(create: (_) => TitipProvider()),
+        ChangeNotifierProvider.value(value: SyncManager.instance),
       ],
       child: MaterialApp(
         title: 'UMKM Titip',
