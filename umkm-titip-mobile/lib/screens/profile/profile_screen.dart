@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../widgets/profile_avatar.dart';
+import 'edit_profile_screen.dart';
+import 'ganti_password_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -139,6 +141,18 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Ubah profil'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GantiPasswordScreen())),
+            icon: const Icon(Icons.lock_outline),
+            label: const Text('Ganti password'),
           ),
         ],
       ),

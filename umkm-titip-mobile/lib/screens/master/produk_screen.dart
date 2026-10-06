@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../models/produk.dart';
 import '../../providers/produk_provider.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/hapus_undo.dart';
+import '../../widgets/search_field.dart';
 import '../../widgets/format_utils.dart';
 
 class ProdukScreen extends StatefulWidget {
@@ -15,6 +17,7 @@ class ProdukScreen extends StatefulWidget {
 
 class _ProdukScreenState extends State<ProdukScreen> {
   bool _loaded = false;
+  String _query = '';
 
   @override
   void didChangeDependencies() {
@@ -37,9 +40,12 @@ class _ProdukScreenState extends State<ProdukScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ProdukProvider>();
+    final daftar = _query.isEmpty
+        ? provider.items
+        : provider.items.where((p) => p.namaProduk.toLowerCase().contains(_query)).toList();
 
     return Scaffold(
-      body: provider.isLoading
+      body: (provider.isLoading && provider.items.isEmpty)
           ? const Center(child: CircularProgressIndicator())
           : provider.items.isEmpty
               ? EmptyState(
@@ -48,42 +54,52 @@ class _ProdukScreenState extends State<ProdukScreen> {
                   actionLabel: 'Tambah Produk',
                   onAction: () => _openForm(),
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final produk = provider.items[index];
-                    return Dismissible(
-                      key: ValueKey(produk.id),
-                      direction: DismissDirection.endToStart,
-                      confirmDismiss: (_) => showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Hapus produk?'),
-                          content: Text('Produk "${produk.namaProduk}" akan dihapus.'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
-                          ],
-                        ),
-                      ),
-                      onDismissed: (_) => provider.remove(produk.id),
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      child: Card(
-                        child: ListTile(
-                          title: Text(produk.namaProduk),
-                          subtitle: Text('HPP ${formatRupiah(produk.hpp)} · Jual ${formatRupiah(produk.hargaJual)}'),
-                          onTap: () => _openForm(produk: produk),
-                        ),
-                      ),
-                    );
-                  },
+              : Column(
+                  children: [
+                    SearchField(
+                      hint: 'Cari produk',
+                      onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+                    ),
+                    Expanded(
+                      child: daftar.isEmpty
+                          ? const EmptyState(icon: Icons.search_off, message: 'Produk tidak ditemukan.')
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                              itemCount: daftar.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final produk = daftar[index];
+                                return Dismissible(
+                                  key: ValueKey(produk.id),
+                                  direction: DismissDirection.endToStart,
+                                  onDismissed: (_) {
+                                    late VoidCallback pulihkan;
+                                    hapusDenganUndo(
+                                      context,
+                                      pesan: 'Produk "${produk.namaProduk}" dihapus',
+                                      sembunyikan: () => pulihkan = provider.sembunyikan(produk.id),
+                                      pulihkan: () => pulihkan(),
+                                      hapusPermanen: () => provider.remove(produk.id),
+                                    );
+                                  },
+                                  background: Container(
+                                    color: Colors.red,
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: 20),
+                                    child: const Icon(Icons.delete, color: Colors.white),
+                                  ),
+                                  child: Card(
+                                    child: ListTile(
+                                      title: Text(produk.namaProduk),
+                                      subtitle: Text('HPP ${formatRupiah(produk.hpp)} · Jual ${formatRupiah(produk.hargaJual)}'),
+                                      onTap: () => _openForm(produk: produk),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
       floatingActionButton: FloatingActionButton(onPressed: () => _openForm(), child: const Icon(Icons.add)),
     );

@@ -48,6 +48,14 @@ dependencies:
   # Ambil/pilih foto profil dari kamera atau galeri (sekaligus mengompres ukurannya)
   image_picker: ^1.1.2
 
+  # Pengingat lokal di bar notifikasi HP (pesanan jatuh tempo 07:00, retur belum diinput 18:00).
+  # Berjalan tanpa internet; jadwalnya disusun ulang tiap data berubah / aplikasi dibuka.
+  flutter_local_notifications: ^22.3.1
+  timezone: ^0.10.1
+
+  # Menyimpan saklar pengingat di HP
+  shared_preferences: ^2.5.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

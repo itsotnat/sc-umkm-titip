@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/reminder_service.dart';
 import '../laporan/laporan_screen.dart';
 import '../master/master_tab_screen.dart';
 import '../pesanan/pesanan_list_screen.dart';
@@ -16,6 +17,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Minta izin notifikasi (Android 13+) lalu susun jadwal pengingat. Aman dipanggil berulang.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ReminderService.instance.mintaIzin();
+      await ReminderService.instance.jadwalkanUlang();
+    });
+  }
 
   static const _tabs = [
     DashboardScreen(),

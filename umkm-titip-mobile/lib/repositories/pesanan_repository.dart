@@ -33,6 +33,7 @@ class PesananRepository {
       final map = Map<String, dynamic>.from(header);
       if (pemesanRow.isNotEmpty) {
         map['nama_pemesan'] = pemesanRow.first['nama_pemesan'];
+        map['no_whatsapp'] = pemesanRow.first['no_whatsapp'];
       }
       result.add(Pesanan.fromMap(map, items: items));
     }

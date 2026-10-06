@@ -24,6 +24,7 @@ class AuthProvider extends ChangeNotifier {
   String? namaUsaha;
   String? namaPemilik;
   String? email;
+  String? noHp;
 
   /// Path relatif foto profil dari server (null = belum ada foto).
   String? fotoUrl;
@@ -66,6 +67,7 @@ class AuthProvider extends ChangeNotifier {
     namaUsaha = user['nama_usaha'] as String?;
     namaPemilik = user['nama_pemilik'] as String?;
     email = user['email'] as String?;
+    if (user.containsKey('no_hp')) noHp = user['no_hp'] as String?;
     fotoUrl = user['foto_url'] as String?;
   }
 
@@ -94,6 +96,38 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       isUploadingFoto = false;
       notifyListeners();
+    }
+  }
+
+  /// Mengubah nama usaha/pemilik/no. HP. Mengembalikan null kalau sukses, atau pesan error.
+  Future<String?> ubahProfil({required String namaUsaha, required String namaPemilik, String? noHp}) async {
+    try {
+      _applyUser(await _authService.updateProfile(namaUsaha: namaUsaha, namaPemilik: namaPemilik, noHp: noHp));
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return ApiClient.messageFromError(e);
+    }
+  }
+
+  /// Mengganti password. Mengembalikan null kalau sukses, atau pesan error.
+  Future<String?> gantiPassword({required String passwordLama, required String passwordBaru}) async {
+    try {
+      await _authService.changePassword(currentPassword: passwordLama, newPassword: passwordBaru);
+      return null;
+    } catch (e) {
+      return ApiClient.messageFromError(e);
+    }
+  }
+
+  /// Sinkronkan dulu, lalu minta server mengirim cadangan ke email. Null = sukses.
+  Future<String?> kirimCadangan() async {
+    try {
+      await SyncManager.instance.syncAll();
+      await _authService.kirimCadanganKeEmail();
+      return null;
+    } catch (e) {
+      return ApiClient.messageFromError(e);
     }
   }
 
@@ -147,7 +181,7 @@ class AuthProvider extends ChangeNotifier {
     SyncManager.instance.stop();
     await _authService.logout();
     sessionExpired = false;
-    namaUsaha = namaPemilik = email = fotoUrl = null;
+    namaUsaha = namaPemilik = email = fotoUrl = noHp = null;
     status = AuthStatus.loggedOut;
     notifyListeners();
   }

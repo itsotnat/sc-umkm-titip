@@ -12,6 +12,9 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = statusColor(label);
+    // Kuning terlalu pucat sebagai warna teks di atas latar kuning muda (kontras rendah),
+    // jadi teksnya memakai kuning-cokelat tua; warna bingkai/latar tetap kuning.
+    final teks = color == AppColors.kuning ? const Color(0xFF8A5A00) : color;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -21,7 +24,7 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12),
+        style: TextStyle(color: teks, fontWeight: FontWeight.w600, fontSize: 12),
       ),
     );
   }

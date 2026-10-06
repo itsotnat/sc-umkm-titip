@@ -57,11 +57,22 @@ class ApiClient {
   static String messageFromError(Object error) {
     if (error is DioException) {
       final data = error.response?.data;
+      final status = error.response?.statusCode;
       if (data is Map && data['error'] != null && data['error']['message'] != null) {
+        // Pesan untuk kesalahan internal (500) terlalu teknis ditampilkan apa adanya;
+        // kode 5xx lain (mis. 503 email belum aktif) membawa pesan yang memang untuk pengguna.
+        if (status == 500) {
+          return 'Server sedang bermasalah. Coba lagi beberapa saat lagi.';
+        }
         return data['error']['message'].toString();
       }
+      if (status != null && status >= 500) {
+        return 'Server sedang bermasalah. Coba lagi beberapa saat lagi.';
+      }
+      if (status == 429) return 'Terlalu banyak permintaan. Coba lagi sebentar lagi.';
       if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout ||
           error.type == DioExceptionType.connectionError) {
         return 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
       }

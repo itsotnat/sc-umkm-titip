@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import '../db/app_database.dart';
 import 'api_client.dart';
 import 'pending_delete_store.dart';
+import 'reminder_service.dart';
 import 'secure_storage_service.dart';
 
 /// Sync Layer (dokumen SAD Bagian 3 dan 6): mengirim semua data berstatus
@@ -69,6 +70,7 @@ class SyncManager extends ChangeNotifier with WidgetsBindingObserver {
     _connectivitySub?.cancel();
     _connectivitySub = null;
     _debounce?.cancel();
+    ReminderService.instance.batalkanSemua();
     pendingCount = 0;
     lastError = null;
     notifyListeners();
@@ -81,6 +83,8 @@ class SyncManager extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Menjadwalkan sinkronisasi sebentar lagi (digabung bila dipanggil beruntun).
   void requestSync({Duration delay = const Duration(seconds: 2)}) {
+    // Data lokal berubah / app dibuka: susun ulang pengingat (pesanan jatuh tempo, retur belum diinput).
+    ReminderService.instance.requestRefresh();
     _debounce?.cancel();
     _debounce = Timer(delay, () => syncAll());
   }

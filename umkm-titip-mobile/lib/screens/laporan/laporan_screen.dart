@@ -12,6 +12,8 @@ import 'export_service.dart';
 
 enum _QuickRange { hariIni, mingguIni, bulanIni, custom }
 
+enum _JenisLaporan { titipOutlet, pesanan }
+
 /// Laporan Titip Outlet, sesuai dokumen UI/UX Design Bagian 8.
 class LaporanScreen extends StatefulWidget {
   const LaporanScreen({super.key});
@@ -110,16 +112,32 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
     }
   }
 
-  Future<void> _export() async {
+  Future<void> _unduh(_JenisLaporan jenis) async {
+    if (_exporting) return;
     setState(() => _exporting = true);
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      final rows = context.read<LaporanProvider>().rows;
-      final path = await ExportService.exportTitipOutletToExcel(rows, _dari, _sampai);
-      if (mounted) {
-        await ExportService.shareFile(path);
+      final String path;
+      final String teks;
+      if (jenis == _JenisLaporan.titipOutlet) {
+        final rows = context.read<LaporanProvider>().rows;
+        if (rows.isEmpty) {
+          messenger.showSnackBar(const SnackBar(content: Text('Belum ada data titip outlet pada rentang tanggal ini.')));
+          return;
+        }
+        path = await ExportService.exportTitipOutletToExcel(rows, _dari, _sampai);
+        teks = 'Laporan Titip Outlet - UMKM Titip';
+      } else {
+        if (context.read<LaporanProvider>().rekapPesanan.totalPesanan == 0) {
+          messenger.showSnackBar(const SnackBar(content: Text('Belum ada pesanan pada rentang tanggal ini.')));
+          return;
+        }
+        path = await ExportService.exportPesananToExcel(_dari, _sampai);
+        teks = 'Laporan Pesanan - UMKM Titip';
       }
+      if (mounted) await ExportService.shareFile(path, text: teks);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal export: $e')));
+      messenger.showSnackBar(SnackBar(content: Text('Gagal mengunduh laporan: $e')));
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -132,7 +150,7 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
     return Scaffold(
       appBar: AppBar(
         title: const AppBarBrand(label: 'Laporan'),
-        actions: const [ProfileAction()],
+        actions: [_buildUnduhLaporan(), const ProfileAction()],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [Tab(text: 'Titip Outlet'), Tab(text: 'Pesanan')],
@@ -171,19 +189,38 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
           ),
         ],
       ),
-      floatingActionButton: AnimatedBuilder(
-        animation: _tabController,
-        builder: (context, _) {
-          final tampilkanExport = _tabController.index == 0 && !provider.isLoading && provider.rows.isNotEmpty;
-          if (!tampilkanExport) return const SizedBox.shrink();
-          return FloatingActionButton.extended(
-            onPressed: _exporting ? null : _export,
-            icon: _exporting
-                ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.file_download_outlined),
-            label: const Text('Export ke Excel'),
-          );
-        },
+    );
+  }
+
+  /// Menu "Unduh Laporan" di AppBar (di samping avatar profil): pilih Titip
+  /// Outlet atau Pesanan, lalu file Excel dibuat dan dibagikan.
+  Widget _buildUnduhLaporan() {
+    return PopupMenuButton<_JenisLaporan>(
+      tooltip: 'Unduh Laporan',
+      enabled: !_exporting,
+      onSelected: _unduh,
+      itemBuilder: (_) => const [
+        PopupMenuItem(
+          value: _JenisLaporan.titipOutlet,
+          child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.storefront_outlined), title: Text('Titip Outlet (Excel)')),
+        ),
+        PopupMenuItem(
+          value: _JenisLaporan.pesanan,
+          child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.receipt_long_outlined), title: Text('Pesanan (Excel)')),
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _exporting
+                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.file_download_outlined, size: 20),
+            const SizedBox(width: 4),
+            const Text('Unduh Laporan', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
     );
   }
@@ -207,7 +244,7 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
         const SizedBox(height: 12),
         Expanded(
           child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             itemCount: provider.rows.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
@@ -242,7 +279,7 @@ class _LaporanScreenState extends State<LaporanScreen> with SingleTickerProvider
       return const EmptyState(icon: Icons.receipt_long_outlined, message: 'Belum ada pesanan pada rentang tanggal ini.');
     }
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       children: [
         Card(
           color: Theme.of(context).colorScheme.primaryContainer,

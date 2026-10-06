@@ -112,6 +112,38 @@ class AuthService {
     return _saveUser(response.data['data']['user'] as Map<String, dynamic>);
   }
 
+  Future<Map<String, dynamic>> updateProfile({
+    required String namaUsaha,
+    required String namaPemilik,
+    String? noHp,
+  }) async {
+    final response = await _dio.patch('/auth/me', data: {
+      'nama_usaha': namaUsaha,
+      'nama_pemilik': namaPemilik,
+      'no_hp': noHp,
+    });
+    return _saveUser(response.data['data']['user'] as Map<String, dynamic>);
+  }
+
+  /// Ganti password. Server membalas token baru: perangkat ini tetap masuk,
+  /// perangkat lain otomatis keluar.
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    final response = await _dio.post('/auth/change-password', data: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+    final token = response.data['data']['token'] as String?;
+    if (token != null && token.isNotEmpty) await SecureStorageService.saveToken(token);
+  }
+
+  /// Minta server mengirim cadangan data (JSON) ke email akun sekarang.
+  Future<void> kirimCadanganKeEmail() async {
+    await _dio.post(
+      '/backup/email',
+      options: Options(sendTimeout: const Duration(seconds: 30), receiveTimeout: const Duration(seconds: 45)),
+    );
+  }
+
   Future<Map<String, dynamic>> uploadFoto(String filePath) async {
     final form = FormData.fromMap({'foto': await MultipartFile.fromFile(filePath)});
     final response = await _dio.post(

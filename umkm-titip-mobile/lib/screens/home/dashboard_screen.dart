@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/outlet.dart';
@@ -10,6 +11,7 @@ import '../../providers/produk_provider.dart';
 import '../../repositories/titip_repository.dart';
 import '../../widgets/app_bar_brand.dart';
 import '../../services/sync_manager.dart';
+import '../../utils/whatsapp.dart';
 import '../../widgets/profile_action.dart';
 import '../../widgets/sync_status_banner.dart';
 import '../../widgets/empty_state.dart';
@@ -148,7 +150,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: StatusBadge(label: _labelPengingat(p.tanggalJatuhTempo)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      StatusBadge(label: _labelPengingat(p.tanggalJatuhTempo)),
+                      if ((p.noWhatsapp ?? '').trim().isNotEmpty)
+                        IconButton(
+                          icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
+                          tooltip: 'Chat ${p.namaPemesan ?? 'pemesan'} lewat WhatsApp',
+                          onPressed: () => bukaWhatsapp(context, p.noWhatsapp, pesan: pesanUntukPesanan(p)),
+                        ),
+                    ],
+                  ),
                 );
               }),
             const SizedBox(height: 80),

@@ -4,6 +4,7 @@ class Pesanan {
   final String id;
   final String pemesanId;
   final String? namaPemesan;
+  final String? noWhatsapp;
   final DateTime tanggalPesan;
   final DateTime tanggalJatuhTempo;
   final bool statusSelesai;
@@ -17,6 +18,7 @@ class Pesanan {
     required this.id,
     required this.pemesanId,
     this.namaPemesan,
+    this.noWhatsapp,
     required this.tanggalPesan,
     required this.tanggalJatuhTempo,
     this.statusSelesai = false,
@@ -43,6 +45,7 @@ class Pesanan {
       id: id,
       pemesanId: pemesanId,
       namaPemesan: namaPemesan,
+      noWhatsapp: noWhatsapp,
       tanggalPesan: tanggalPesan,
       tanggalJatuhTempo: tanggalJatuhTempo,
       statusSelesai: statusSelesai ?? this.statusSelesai,
@@ -73,6 +76,7 @@ class Pesanan {
       id: map['id'] as String,
       pemesanId: map['pemesan_id'] as String,
       namaPemesan: map['nama_pemesan'] as String?,
+      noWhatsapp: map['no_whatsapp'] as String?,
       tanggalPesan: DateTime.parse(map['tanggal_pesan'] as String),
       tanggalJatuhTempo: DateTime.parse(map['tanggal_jatuh_tempo'] as String),
       statusSelesai: (map['status_selesai'] == 1 || map['status_selesai'] == true),

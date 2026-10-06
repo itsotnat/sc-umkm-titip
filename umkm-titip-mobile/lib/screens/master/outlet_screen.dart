@@ -1,33 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/outlet.dart';
 import '../../providers/outlet_provider.dart';
+import '../../utils/whatsapp.dart';
 import '../../widgets/empty_state.dart';
-
-/// Menormalkan nomor WhatsApp ke format internasional yang dipakai wa.me
-/// (mis. "0812..." atau "+62812..." -> "62812...").
-String? _normalizeWhatsapp(String? raw) {
-  if (raw == null || raw.trim().isEmpty) return null;
-  var nomor = raw.replaceAll(RegExp(r'[\s\-]'), '');
-  if (nomor.startsWith('+')) nomor = nomor.substring(1);
-  if (nomor.startsWith('0')) nomor = '62${nomor.substring(1)}';
-  return nomor;
-}
-
-Future<void> _bukaWhatsapp(BuildContext context, String? nomor) async {
-  final normalized = _normalizeWhatsapp(nomor);
-  if (normalized == null) return;
-  final uri = Uri.parse('https://wa.me/$normalized');
-  final berhasil = await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!berhasil && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Tidak bisa membuka WhatsApp. Pastikan WhatsApp terpasang di HP ini.')),
-    );
-  }
-}
+import '../../widgets/hapus_undo.dart';
+import '../../widgets/search_field.dart';
 
 class OutletScreen extends StatefulWidget {
   const OutletScreen({super.key});
@@ -38,6 +18,7 @@ class OutletScreen extends StatefulWidget {
 
 class _OutletScreenState extends State<OutletScreen> {
   bool _loaded = false;
+  String _query = '';
 
   @override
   void didChangeDependencies() {
@@ -60,9 +41,14 @@ class _OutletScreenState extends State<OutletScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<OutletProvider>();
+    final daftar = _query.isEmpty
+        ? provider.items
+        : provider.items
+            .where((o) => o.namaOutlet.toLowerCase().contains(_query) || (o.alamat ?? '').toLowerCase().contains(_query))
+            .toList();
 
     return Scaffold(
-      body: provider.isLoading
+      body: (provider.isLoading && provider.items.isEmpty)
           ? const Center(child: CircularProgressIndicator())
           : provider.items.isEmpty
               ? EmptyState(
@@ -71,57 +57,67 @@ class _OutletScreenState extends State<OutletScreen> {
                   actionLabel: 'Tambah Outlet',
                   onAction: () => _openForm(),
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final outlet = provider.items[index];
-                    return Dismissible(
-                      key: ValueKey(outlet.id),
-                      direction: DismissDirection.endToStart,
-                      confirmDismiss: (_) => showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Hapus outlet?'),
-                          content: Text('Outlet "${outlet.namaOutlet}" akan dihapus.'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
-                          ],
-                        ),
-                      ),
-                      onDismissed: (_) => provider.remove(outlet.id),
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      child: Card(
-                        child: ListTile(
-                          title: Text(outlet.namaOutlet),
-                          subtitle: Text(outlet.alamat?.isNotEmpty == true ? outlet.alamat! : '-'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (outlet.noWhatsapp?.isNotEmpty == true)
-                                IconButton(
-                                  icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
-                                  tooltip: 'Chat WhatsApp',
-                                  onPressed: () => _bukaWhatsapp(context, outlet.noWhatsapp),
-                                ),
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined),
-                                tooltip: 'Edit outlet',
-                                onPressed: () => _openForm(outlet: outlet),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+              : Column(
+                  children: [
+                    SearchField(
+                      hint: 'Cari outlet',
+                      onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+                    ),
+                    Expanded(
+                      child: daftar.isEmpty
+                          ? const EmptyState(icon: Icons.search_off, message: 'Outlet tidak ditemukan.')
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                              itemCount: daftar.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final outlet = daftar[index];
+                                return Dismissible(
+                                  key: ValueKey(outlet.id),
+                                  direction: DismissDirection.endToStart,
+                                  onDismissed: (_) {
+                                    late VoidCallback pulihkan;
+                                    hapusDenganUndo(
+                                      context,
+                                      pesan: 'Outlet "${outlet.namaOutlet}" dihapus',
+                                      sembunyikan: () => pulihkan = provider.sembunyikan(outlet.id),
+                                      pulihkan: () => pulihkan(),
+                                      hapusPermanen: () => provider.remove(outlet.id),
+                                    );
+                                  },
+                                  background: Container(
+                                    color: Colors.red,
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: 20),
+                                    child: const Icon(Icons.delete, color: Colors.white),
+                                  ),
+                                  child: Card(
+                                    child: ListTile(
+                                      title: Text(outlet.namaOutlet),
+                                      subtitle: Text(outlet.alamat?.isNotEmpty == true ? outlet.alamat! : '-'),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (outlet.noWhatsapp?.isNotEmpty == true)
+                                            IconButton(
+                                              icon: const FaIcon(FontAwesomeIcons.whatsapp, color: Colors.green),
+                                              tooltip: 'Chat WhatsApp',
+                                              onPressed: () => bukaWhatsapp(context, outlet.noWhatsapp),
+                                            ),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit_outlined),
+                                            tooltip: 'Edit outlet',
+                                            onPressed: () => _openForm(outlet: outlet),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
       floatingActionButton: FloatingActionButton(onPressed: () => _openForm(), child: const Icon(Icons.add)),
     );

@@ -31,4 +31,17 @@ class OutletProvider extends ChangeNotifier {
     await _repository.delete(id);
     await load();
   }
+
+  /// Menyembunyikan item dari daftar (untuk "hapus dengan Batalkan"). Mengembalikan
+  /// fungsi pemulih yang memasukkannya kembali ke posisi semula.
+  VoidCallback sembunyikan(String id) {
+    final index = items.indexWhere((e) => e.id == id);
+    if (index < 0) return () {};
+    final item = items.removeAt(index);
+    notifyListeners();
+    return () {
+      items.insert(index.clamp(0, items.length), item);
+      notifyListeners();
+    };
+  }
 }

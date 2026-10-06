@@ -36,6 +36,12 @@ class UmkmTitipApp extends StatelessWidget {
         title: 'UMKM Titip',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
+        // Batasi pembesaran font sistem (maks 1,3x) supaya tata letak tidak pecah/terpotong
+        // di HP yang ukuran hurufnya dibesarkan; tetap mengikuti pengaturan pengguna sampai batas itu.
+        builder: (context, child) => MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: child ?? const SizedBox.shrink(),
+        ),
         home: const RootRouter(),
       ),
     );
@@ -54,14 +60,8 @@ class RootRouter extends StatelessWidget {
           case AuthStatus.unknown:
             return const Scaffold(
               body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AppLogo(size: 96, showLabel: true),
-                    SizedBox(height: 32),
-                    CircularProgressIndicator(),
-                  ],
-                ),
+                // Hanya logo: pengecekan sesi lokal berlangsung sangat singkat, jadi tidak perlu spinner.
+                child: AppLogo(size: 96, showLabel: true),
               ),
             );
           case AuthStatus.loggedOut:
