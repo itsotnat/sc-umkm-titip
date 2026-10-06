@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ADD COLUMN IF NOT EXISTS foto_url VARCHAR(255);
 -- Satu akun = satu sesi aktif: login baru menggantikan sesi lama.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS active_session_id UUID;
+-- Cadangan data otomatis ke email (00:00 WIB): kapan terakhir terkirim dan sidik jarinya,
+-- supaya malam berikutnya dilewati bila datanya tidak berubah.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_backup_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_backup_hash VARCHAR(64);
 
 -- =========================================================
 -- password_reset (kode OTP 6 digit untuk fitur lupa password)

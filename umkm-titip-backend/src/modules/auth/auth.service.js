@@ -88,6 +88,55 @@ async function getProfile(userId) {
   return user;
 }
 
+/** Mengubah nama usaha, nama pemilik, dan nomor HP. Email tidak bisa diubah (dipakai untuk login dan backup). */
+async function updateProfile(userId, { namaUsaha, namaPemilik, noHp }) {
+  namaUsaha = String(namaUsaha || '').trim();
+  namaPemilik = String(namaPemilik || '').trim();
+  noHp = String(noHp || '').trim() || null;
+  if (!namaUsaha || !namaPemilik) {
+    throw ApiError.badRequest('Nama usaha dan nama pemilik wajib diisi');
+  }
+  if (namaUsaha.length > 150 || namaPemilik.length > 150) {
+    throw ApiError.badRequest('Nama maksimal 150 karakter');
+  }
+  if (noHp && !/^[0-9+\-\s]{8,30}$/.test(noHp)) {
+    throw ApiError.badRequest('Nomor HP tidak valid');
+  }
+  try {
+    const user = await userRepository.updateProfile(userId, { namaUsaha, namaPemilik, noHp });
+    if (!user) throw ApiError.notFound('Akun tidak ditemukan');
+    return user;
+  } catch (err) {
+    if (err && err.code === '23505') {
+      throw ApiError.badRequest('Nomor HP sudah dipakai akun lain', 'PHONE_TAKEN');
+    }
+    throw err;
+  }
+}
+
+/**
+ * Ganti password dari dalam aplikasi. Perangkat ini tetap masuk (mendapat token baru),
+ * sedangkan perangkat lain otomatis keluar karena sesi aktifnya diganti.
+ */
+async function changePassword(userId, { currentPassword, newPassword }) {
+  if (!currentPassword || !newPassword) {
+    throw ApiError.badRequest('Password saat ini dan password baru wajib diisi');
+  }
+  validatePassword(newPassword);
+  const hash = await userRepository.findPasswordHash(userId);
+  if (!hash) throw ApiError.notFound('Akun tidak ditemukan');
+  if (!(await bcrypt.compare(currentPassword, hash))) {
+    throw new ApiError(400, 'WRONG_PASSWORD', 'Password saat ini salah');
+  }
+  if (currentPassword === newPassword) {
+    throw ApiError.badRequest('Password baru harus berbeda dari password saat ini');
+  }
+  await userRepository.updatePassword(userId, await bcrypt.hash(newPassword, 10));
+  const sid = crypto.randomUUID();
+  await userRepository.setActiveSession(userId, sid);
+  return { token: signToken(userId, sid) };
+}
+
 // --- Lupa password -----------------------------------------------------------
 
 function hashResetCode(code) {
@@ -161,4 +210,4 @@ async function resetPassword({ email, code, newPassword }) {
   return { message: 'Password berhasil diubah. Silakan masuk dengan password baru.' };
 }
 
-module.exports = { register, login, getProfile, forgotPassword, resetPassword };
+module.exports = { register, login, getProfile, updateProfile, changePassword, forgotPassword, resetPassword };

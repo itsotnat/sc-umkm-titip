@@ -26,6 +26,20 @@ async function updatePassword(userId, passwordHash) {
   await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, userId]);
 }
 
+async function findPasswordHash(userId) {
+  const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+  return rows[0] ? rows[0].password_hash : null;
+}
+
+async function updateProfile(userId, { namaUsaha, namaPemilik, noHp }) {
+  const { rows } = await pool.query(
+    `UPDATE users SET nama_usaha = $1, nama_pemilik = $2, no_hp = $3 WHERE id = $4
+     RETURNING ${PUBLIC_COLUMNS}`,
+    [namaUsaha, namaPemilik, noHp, userId]
+  );
+  return rows[0] || null;
+}
+
 async function updateFoto(userId, fotoUrl) {
   const { rows } = await pool.query(
     `UPDATE users SET foto_url = $1 WHERE id = $2 RETURNING ${PUBLIC_COLUMNS}`,
@@ -84,6 +98,8 @@ module.exports = {
   findById,
   create,
   updatePassword,
+  findPasswordHash,
+  updateProfile,
   updateFoto,
   setActiveSession,
   getActiveSession,

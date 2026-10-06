@@ -23,7 +23,7 @@ function getTransporter() {
  * Mengirim email. Kalau SMTP belum dikonfigurasi (mis. saat development),
  * isi email dicetak ke log supaya alur tetap bisa dicoba tanpa mengirim apa pun.
  */
-async function sendMail({ to, subject, text, html }) {
+async function sendMail({ to, subject, text, html, attachments }) {
   if (!isConfigured()) {
     console.warn(`[mailer] SMTP belum dikonfigurasi. Email ke ${to} tidak dikirim.\n${subject}\n${text}`);
     return;
@@ -34,6 +34,7 @@ async function sendMail({ to, subject, text, html }) {
     subject,
     text,
     html,
+    attachments,
   });
 }
 

@@ -10,6 +10,7 @@ const titipRoutes = require('./modules/titip/titip.routes');
 const pesananRoutes = require('./modules/pesanan/pesanan.routes');
 const laporanRoutes = require('./modules/laporan/laporan.routes');
 const syncRoutes = require('./modules/sync/sync.routes');
+const backupRoutes = require('./modules/backup/backup.routes');
 
 const path = require('path');
 const { UPLOAD_ROOT } = require('./modules/auth/profile.service');
@@ -40,6 +41,7 @@ app.use(`${API_PREFIX}/titip`, titipRoutes);
 app.use(`${API_PREFIX}`, pesananRoutes); // /pesanan dan /pemesan
 app.use(`${API_PREFIX}/laporan`, laporanRoutes);
 app.use(`${API_PREFIX}/sync`, syncRoutes);
+app.use(`${API_PREFIX}/backup`, backupRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

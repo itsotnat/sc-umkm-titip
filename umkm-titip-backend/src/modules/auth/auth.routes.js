@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const authController = require('./auth.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
-const { authLimiter, forgotLimiter, resetLimiter } = require('../../middleware/rateLimit.middleware');
+const { authLimiter, forgotLimiter, resetLimiter, changePasswordLimiter } = require('../../middleware/rateLimit.middleware');
 const { ApiError } = require('../../utils/ApiError');
 
 const router = express.Router();
@@ -26,6 +26,8 @@ router.post('/forgot-password', forgotLimiter, authController.forgotPassword);
 router.post('/reset-password', resetLimiter, authController.resetPassword);
 
 router.get('/me', authMiddleware, authController.me);
+router.patch('/me', authMiddleware, authController.updateMe);
+router.post('/change-password', authMiddleware, changePasswordLimiter, authController.changePassword);
 router.post('/me/foto', authMiddleware, handleUpload, authController.uploadFoto);
 router.delete('/me/foto', authMiddleware, authController.deleteFoto);
 
