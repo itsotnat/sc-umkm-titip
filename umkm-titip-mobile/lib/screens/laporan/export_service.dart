@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:excel/excel.dart' as excel_lib;
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart' show Share, XFile;
+import 'package:share_plus/share_plus.dart';
 
 import '../../db/app_database.dart';
 import '../../providers/laporan_provider.dart';
@@ -253,9 +253,6 @@ class ExportService {
   // ------------------------------------------------------------------ share
 
   static Future<void> shareFile(String path, {String text = 'Laporan - UMKM Titip'}) async {
-    // Menggunakan Share.shareXFiles (API stabil share_plus versi 7-9.x).
-    // Bila proyek di-upgrade ke share_plus versi lebih baru yang menghapus
-    // API statis ini, ganti ke SharePlus.instance.share(ShareParams(...)).
-    await Share.shareXFiles([XFile(path)], text: text);
+    await SharePlus.instance.share(ShareParams(files: [XFile(path)], text: text));
   }
 }

@@ -42,8 +42,10 @@ class _TitipInputSheetState extends State<TitipInputSheet> {
 
   Future<void> _load() async {
     final produkProvider = context.read<ProdukProvider>();
+    final titipProvider = context.read<TitipProvider>();
     if (produkProvider.items.isEmpty) await produkProvider.load();
-    await context.read<TitipProvider>().loadUntukOutlet(widget.outlet.id, widget.tanggal, produkProvider.items, _rows);
+    await titipProvider.loadUntukOutlet(widget.outlet.id, widget.tanggal, produkProvider.items, _rows);
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 
