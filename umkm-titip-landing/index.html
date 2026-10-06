@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="UMKM Titip: aplikasi Android untuk mencatat kirim dan retur tiap outlet, menghitung untung rugi otomatis, dan merapikan pesanan langsung bagi UMKM makanan harian.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="UMKM Titip">
+<meta property="og:description" content="Catat kirim dan retur outlet, hitung omzet dan profit otomatis, tetap jalan saat offline.">
+<meta property="og:image" content="https://umkm-titip.web.id/assets/logo.png">
+<link rel="icon" href="assets/logo.png">
+<title>UMKM Titip - Titip ke banyak outlet, untung ruginya tetap terbaca</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- Tombol tema terang/gelap: berdiri sendiri di pojok kanan atas layar (position:fixed di css/style.css). Logikanya di js/main.js bagian 7. -->
+<button class="tgl" id="tgl" type="button"></button>
+
+<!-- HEADER: menu pil melayang. Tombol Unduh APK memakai atribut data-apk, alamatnya diatur dari APK_URL di js/main.js (kosong = nonaktif, tampil "segera hadir") -->
+<nav><div class="bar">
+<a class="brand" href="#atas"><img src="assets/logo.png" alt="Logo UMKM Titip">UMKM Titip</a>
+<div class="links"><a href="#deskripsi">Deskripsi</a><a href="#cara">Cara kerja</a><a href="#fitur">Fitur</a><a class="btn sm" data-apk href="#">Unduh APK</a></div>
+</div></nav>
+
+<!-- HERO: latar aurora (animasi 1), judul per kata (animasi 2), ponsel 3D (animasi 3), tombol berkilau (animasi 4) -->
+<header class="dark hero" id="atas">
+<div class="aur"><i></i><i></i><i></i></div>
+<div class="wrap">
+<div>
+<h1 id="h1">Titip tercatat, Untung terlihat</h1>
+<p class="sub">Catat kirim dan retur outlet secara akurat.<br>
+Biarkan UMKM Titip hitung omzet dan profit dengan cepat.</p>
+<div class="cta-row"><a class="btn gold" href="#deskripsi">Lihat Deskripsi</a><a class="btn glass" data-apk href="#">Unduh APK</a></div>
+<p class="soon" data-soon>APK segera hadir</p>
+</div>
+<div class="stage" id="stage"><div class="tilt" id="tilt">
+<div class="phone"><img src="assets/screen-offline.jpg" alt="Layar Input Titip saat offline"></div>
+<span class="pill pl1">Offline, akan disinkron</span>
+<span class="pill pl2">Terjual 34 pcs <b>Rp 102.000</b></span>
+<span class="pill pl3">Retur <b>6</b> pcs</span>
+</div></div>
+</div>
+</header>
+<!-- MARQUEE: teks produk berjalan (animasi 5). Isinya sengaja digandakan agar loop mulus -->
+<div class="mq" aria-hidden="true"><div><span>Lemper</span><span>Kue Lapis</span><span>Nasi Bungkus</span><span>Kue Basah</span><span>Risoles</span><span>Lemper</span><span>Kue Lapis</span><span>Nasi Bungkus</span><span>Kue Basah</span><span>Risoles</span></div></div>
+
+<!-- DESKRIPSI: paragraf #stmt menyala kata demi kata saat di-scroll (animasi 6) -->
+<section id="deskripsi"><div class="wrap">
+<h2 style="margin-bottom:34px">Apa itu UMKM Titip?</h2>
+<p class="stmt" id="stmt">Produk makanan harian hanya tahan satu sampai dua hari. Begitu dititip ke warung, kantin, atau toko, barang yang tidak laku langsung jadi kerugian. UMKM Titip mencatat kirim dan retur tiap outlet, menghitung untung rugi otomatis, dan merapikan pesanan langsung dalam satu aplikasi.</p>
+<div class="tags rv"><span>Outlet laris dan sepi tidak terlacak</span><span>Hitung terjual manual</span><span>Rugi dari barang basi tak terlihat</span><span>Pesanan tercecer di chat</span></div>
+</div></section>
+
+<!-- CARA KERJA: 4 langkah. Desktop = ponsel sticky di kanan (animasi 7). Mobile = ponsel kecil per langkah (img.m) -->
+<section id="cara" style="padding-top:30px"><div class="wrap">
+<h2>Empat langkah, satu aplikasi</h2>
+<div class="how">
+<div>
+<div class="ch on"><div class="n">1</div><h3>Isi produk sekali saja</h3><p>Masukkan nama produk, HPP, dan harga jual default. Setelah itu terisi otomatis di setiap input.</p><img class="m" src="assets/screen-master.jpg" alt="Layar Master Produk"></div>
+<div class="ch"><div class="n">2</div><h3>Tambah outlet langganan</h3><p>Catat nama outlet, alamat, dan nomor WhatsApp. Nomor yang salah ditolak sebelum tersimpan.</p><img class="m" src="assets/screen-outlet.jpg" alt="Layar Tambah Outlet"></div>
+<div class="ch"><div class="n">3</div><h3>Catat kirim dan retur</h3><p>Isi dua angka per produk. Terjual dan nilai rupiah muncul saat itu juga. Retur yang lebih besar dari kirim tidak bisa disimpan.</p><img class="m" src="assets/screen-input.jpg" alt="Layar Input Titip"></div>
+<div class="ch"><div class="n">4</div><h3>Sinyal hilang, catatan aman</h3><p>Tanpa internet pun input tetap tersimpan di ponsel dan disinkronkan otomatis saat sinyal kembali.</p><img class="m" src="assets/screen-offline.jpg" alt="Layar Input Titip offline"></div>
+</div>
+<div class="stick"><div class="phone"><img class="on" src="assets/screen-master.jpg" alt=""><img src="assets/screen-outlet.jpg" alt=""><img src="assets/screen-input.jpg" alt=""><img src="assets/screen-offline.jpg" alt=""></div></div>
+</div></div></section>
+
+<!-- FITUR: kartu muncul saat scroll (animasi 8), sorotan mengikuti kursor (animasi 9), bar tumbuh (animasi 10) -->
+<section id="fitur" style="padding-top:30px"><div class="wrap">
+<h2>Fitur yang dipakai tiap hari</h2>
+<div class="grid">
+<div class="fc rv"><div class="i">📝</div><h3>Input titip harian</h3><p>Kirim dan retur tiap produk dalam satu layar.</p></div>
+<div class="fc rv"><div class="i">🧮</div><h3>Hitung otomatis</h3><p>Terjual, nilai rupiah, dan tingkat keterjualan tanpa kalkulator.</p></div>
+<div class="fc rv"><div class="i">🧾</div><h3>Pesanan langsung</h3><p>Pemesan, jatuh tempo, status pesanan, dan status bayar.</p></div>
+<div class="fc w2 rv"><div class="i">📊</div><h3>Laporan per outlet</h3><p>Lihat outlet laris, standar, atau kurang. Filter tanggal dan ekspor ke Excel. <small>(Contoh data)</small></p>
+<div class="bars"><div class="br"><span>Kios Stasiun</span><div class="trk"><i style="--w:92%"></i></div><em>Laris</em></div><div class="br"><span>Kantin SMP 2</span><div class="trk"><i style="--w:81%"></i></div><em>Standar</em></div><div class="br"><span>Warung Maju</span><div class="trk"><i style="--w:47%"></i></div><em>Kurang</em></div></div></div>
+<div class="fc rv"><div class="i">📴</div><h3>Tetap jalan offline</h3><p>Data tersimpan di ponsel lalu tersinkron saat sinyal kembali.</p></div>
+<div class="fc rv"><div class="i">📧</div><h3>Cadangan ke email</h3><p>Berkas cadangan dikirim ke email akun tiap tengah malam bila ada perubahan data.</p></div>
+<div class="fc rv"><div class="i">🔔</div><h3>Pengingat harian</h3><p>Notifikasi pukul 07.00 untuk pesanan jatuh tempo dan pukul 18.00 untuk retur yang belum diinput.</p></div>
+<div class="fc rv"><div class="i">💬</div><h3>Hubungi lewat WhatsApp</h3><p>Satu ketuk membuka chat ke outlet atau pemesan, tanpa menyimpan kontak.</p></div>
+<div class="fc w3 rv"><div class="i">🔒</div><h3>Akun terpisah untuk tiap produsen</h3><p>Data usaha Anda tidak tercampur dengan akun lain, jadi aman dipakai banyak UMKM sekaligus.</p></div>
+</div></div></section>
+
+<div class="dark cta"><div class="aur"><i></i><i></i><i></i></div><div class="in2"><h2>Siap merapikan titip-jual Anda?</h2><p>Unduh aplikasinya, daftar akun, lalu catat kirim dan retur outlet pertama Anda.</p><a class="btn gold" data-apk href="#">Unduh APK</a><p class="soon" data-soon>APK segera hadir</p></div></div>
+<footer><div class="wrap">Kelompok Capstone Project UMKM Titip. Program Studi Sistem Informasi, Universitas Terbuka, <span id="y">2026</span>.<br><a class="flink" data-kode href="#" hidden>Kode program</a></div></footer>
+
+<script src="js/main.js" defer></script>
+</body>
+</html>
