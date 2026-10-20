@@ -1,4 +1,4 @@
-package com.example.umkm_titip
+package id.web.umkm_titip.app
 
 import io.flutter.embedding.android.FlutterActivity
 

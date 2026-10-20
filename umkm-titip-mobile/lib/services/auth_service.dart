@@ -5,6 +5,7 @@ import '../db/app_database.dart';
 import '../repositories/outlet_repository.dart';
 import '../repositories/pesanan_repository.dart';
 import '../repositories/produk_repository.dart';
+import '../repositories/titip_repository.dart';
 import 'api_client.dart';
 import 'secure_storage_service.dart';
 import 'sync_manager.dart';
@@ -86,6 +87,19 @@ class AuthService {
       await PesananRepository().replaceFromServer(results[3].data['data'] as List<dynamic>);
     } catch (_) {
       // Lihat catatan di atas.
+    }
+    await _pullTitip();
+  }
+
+  /// Data titip harian (kirim dan retur) ikut ditarik lewat /sync/pull. Dipisah
+  /// supaya kegagalan di sini tidak membatalkan data master yang sudah masuk.
+  Future<void> _pullTitip() async {
+    try {
+      final res = await _dio.post('/sync/pull', data: <String, dynamic>{});
+      final titip = (res.data['data']['titip'] as List<dynamic>?) ?? const [];
+      await TitipRepository().replaceFromServer(titip);
+    } catch (_) {
+      // Dicoba lagi pada login berikutnya.
     }
   }
 

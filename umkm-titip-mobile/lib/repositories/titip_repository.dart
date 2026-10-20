@@ -63,4 +63,46 @@ class TitipRepository {
       whereArgs: ids,
     );
   }
+
+  /// Tanggal dari server (kolom `date` PostgreSQL) datang sebagai ISO 8601,
+  /// mis. `2026-10-05T00:00:00.000Z` (server UTC) atau `2026-10-04T17:00:00.000Z`
+  /// (server WIB). Dikonversi ke zona waktu perangkat lalu diambil tanggalnya,
+  /// supaya tidak bergeser sehari. Format polos `2026-10-05` dipakai apa adanya.
+  static String tanggalDariServer(dynamic nilai) {
+    final teks = nilai.toString();
+    if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(teks)) return teks;
+    final waktu = DateTime.parse(teks).toLocal();
+    final bulan = waktu.month.toString().padLeft(2, '0');
+    final hari = waktu.day.toString().padLeft(2, '0');
+    return '${waktu.year}-$bulan-$hari';
+  }
+
+  /// Dipanggil saat login: mengisi ulang data titip dari server (mis. setelah
+  /// logout yang mengosongkan database lokal). Baris lokal yang masih `pending`
+  /// tidak ditimpa.
+  Future<void> replaceFromServer(List<dynamic> serverItems) async {
+    final db = await AppDatabase.instance.database;
+    final pending = await db.query('transaksi_titip', columns: ['id'], where: "sync_status = 'pending'");
+    final pendingIds = pending.map((r) => r['id'] as String).toSet();
+    final batch = db.batch();
+    for (final item in serverItems) {
+      final id = item['id'] as String;
+      if (pendingIds.contains(id)) continue;
+      batch.insert(
+        'transaksi_titip',
+        {
+          'id': id,
+          'outlet_id': item['outlet_id'],
+          'produk_id': item['produk_id'],
+          'tanggal': tanggalDariServer(item['tanggal']),
+          'jumlah_kirim': item['jumlah_kirim'],
+          'jumlah_retur': item['jumlah_retur'],
+          'sync_status': 'synced',
+          'updated_at': item['updated_at']?.toString() ?? DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
 }
