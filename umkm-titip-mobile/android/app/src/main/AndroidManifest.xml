@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Akses internet untuk login dan sinkronisasi (wajib di build rilis). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Pengingat di bar notifikasi: izin tampil (Android 13+) dan jadwal bertahan setelah HP restart. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
