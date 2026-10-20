@@ -52,7 +52,14 @@ class _PesananListScreenState extends State<PesananListScreen> {
           title: const AppBarBrand(label: 'Pesanan'),
           actions: const [ProfileAction()],
           bottom: TabBar(
-            tabs: const [Tab(text: 'Semua'), Tab(text: 'Belum Selesai'), Tab(text: 'Selesai')],
+            labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(fontSize: 13),
+            tabs: const [
+              Tab(child: Text('Semua', maxLines: 1, softWrap: false)),
+              Tab(child: Text('Belum Selesai', maxLines: 1, softWrap: false)),
+              Tab(child: Text('Selesai', maxLines: 1, softWrap: false)),
+            ],
             onTap: (index) {
               provider.setFilter(['semua', 'belum_selesai', 'selesai'][index]);
             },
