@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/outlet_provider.dart';
+import '../providers/pesanan_provider.dart';
+import '../providers/produk_provider.dart';
+import '../services/auth_service.dart';
 import '../services/sync_manager.dart';
 
 /// Status sinkronisasi di Beranda: tersinkron / offline / N data menunggu.
@@ -70,6 +74,30 @@ class SyncStatusBanner extends StatelessWidget {
                 ),
             ],
           ),
+          if (sync.pullError != null && !sync.isSyncing)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, left: 26),
+              child: Row(
+                children: [
+                  Expanded(child: Text(sync.pullError!, style: TextStyle(fontSize: 12, color: Colors.red.shade700))),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () async {
+                      final outlet = context.read<OutletProvider>();
+                      final produk = context.read<ProdukProvider>();
+                      final pesanan = context.read<PesananProvider>();
+                      await AuthService().tarikDataServer();
+                      await Future.wait([outlet.load(), produk.load(), pesanan.load()]);
+                    },
+                    child: const Text('Muat ulang'),
+                  ),
+                ],
+              ),
+            ),
           if (sync.lastError != null && !sync.isSyncing)
             Padding(
               padding: const EdgeInsets.only(top: 4, left: 26),

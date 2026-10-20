@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../db/app_database.dart';
@@ -61,46 +62,47 @@ class AuthService {
     // Kirim dulu data yang masih pending, sebelum ditimpa data dari server.
     await SyncManager.instance.syncAll();
 
-    // Tarik ulang seluruh data master dari server setiap kali berhasil
-    // login/register, supaya data tetap ada walau sebelumnya sempat logout
-    // (yang mengosongkan database lokal lewat AppDatabase.clearAll()).
-    await _pullMasterData();
+    // Tarik ulang seluruh data dari server setiap kali berhasil login/register,
+    // supaya data tetap ada walau sebelumnya sempat logout (yang mengosongkan
+    // database lokal lewat AppDatabase.clearAll()). Kegagalan tidak membatalkan
+    // login: ditampilkan di Beranda dan bisa dicoba lagi lewat "Muat ulang".
+    await tarikDataServer();
 
     return data;
   }
 
-  /// Sesuai dokumen SAD Bagian 3 (Sync Layer, pull saat login). Kalau gagal
-  /// (mis. baru login lalu langsung offline), dibiarkan saja: data lokal
-  /// tetap seperti sebelumnya dan bisa dicoba lagi lewat pull-to-refresh
-  /// di masing-masing layar.
-  Future<void> _pullMasterData() async {
-    try {
-      final results = await Future.wait([
-        _dio.get('/produk'),
-        _dio.get('/outlet'),
-        _dio.get('/pemesan'),
-        _dio.get('/pesanan'),
-      ]);
-      await ProdukRepository().replaceFromServer(results[0].data['data'] as List<dynamic>);
-      await OutletRepository().replaceFromServer(results[1].data['data'] as List<dynamic>);
-      await PemesanRepository().replaceFromServer(results[2].data['data'] as List<dynamic>);
-      await PesananRepository().replaceFromServer(results[3].data['data'] as List<dynamic>);
-    } catch (_) {
-      // Lihat catatan di atas.
-    }
-    await _pullTitip();
-  }
+  /// Menarik produk, outlet, pemesan, pesanan, dan titip dari server. Tiap
+  /// entitas dikerjakan sendiri-sendiri supaya satu yang bermasalah tidak
+  /// membatalkan yang lain. Mengembalikan nama entitas yang gagal.
+  Future<List<String>> tarikDataServer() async {
+    final gagal = <String>[];
 
-  /// Data titip harian (kirim dan retur) ikut ditarik lewat /sync/pull. Dipisah
-  /// supaya kegagalan di sini tidak membatalkan data master yang sudah masuk.
-  Future<void> _pullTitip() async {
-    try {
+    Future<void> tarik(String nama, Future<void> Function() kerja) async {
+      try {
+        await kerja();
+      } catch (e, st) {
+        gagal.add(nama);
+        debugPrint('[tarik] $nama gagal: $e\n$st');
+      }
+    }
+
+    Future<List<dynamic>> ambil(String path) async {
+      final res = await _dio.get(path);
+      return res.data['data'] as List<dynamic>;
+    }
+
+    await tarik('produk', () async => ProdukRepository().replaceFromServer(await ambil('/produk')));
+    await tarik('outlet', () async => OutletRepository().replaceFromServer(await ambil('/outlet')));
+    await tarik('pemesan', () async => PemesanRepository().replaceFromServer(await ambil('/pemesan')));
+    await tarik('pesanan', () async => PesananRepository().replaceFromServer(await ambil('/pesanan')));
+    await tarik('titip', () async {
       final res = await _dio.post('/sync/pull', data: <String, dynamic>{});
       final titip = (res.data['data']['titip'] as List<dynamic>?) ?? const [];
       await TitipRepository().replaceFromServer(titip);
-    } catch (_) {
-      // Dicoba lagi pada login berikutnya.
-    }
+    });
+
+    SyncManager.instance.setPullError(gagal);
+    return gagal;
   }
 
   /// Kode OTP 6 digit dikirim ke email. Server selalu membalas sukses, ada atau

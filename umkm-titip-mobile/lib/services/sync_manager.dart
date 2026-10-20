@@ -40,6 +40,14 @@ class SyncManager extends ChangeNotifier with WidgetsBindingObserver {
   /// Alasan penolakan/kegagalan terakhir (null bila sinkronisasi terakhir mulus).
   String? lastError;
 
+  /// Pesan bila penarikan data dari server (saat login/Muat ulang) ada yang gagal.
+  String? pullError;
+
+  void setPullError(List<String> gagal) {
+    pullError = gagal.isEmpty ? null : 'Data ${gagal.join(', ')} gagal dimuat dari server.';
+    notifyListeners();
+  }
+
   Future<bool> get isOnline async {
     final result = await Connectivity().checkConnectivity();
     return !result.contains(ConnectivityResult.none);
@@ -73,6 +81,7 @@ class SyncManager extends ChangeNotifier with WidgetsBindingObserver {
     ReminderService.instance.batalkanSemua();
     pendingCount = 0;
     lastError = null;
+    pullError = null;
     notifyListeners();
   }
 

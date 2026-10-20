@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../db/app_database.dart';
+import '../utils/angka.dart';
 import '../models/produk.dart';
 import '../services/api_client.dart';
 import '../services/pending_delete_store.dart';
@@ -100,8 +101,8 @@ class ProdukRepository {
       final produk = Produk(
         id: item['id'],
         namaProduk: item['nama_produk'],
-        hpp: (item['hpp'] as num).toDouble(),
-        hargaJual: (item['harga_jual'] as num).toDouble(),
+        hpp: keDouble(item['hpp']),
+        hargaJual: keDouble(item['harga_jual']),
         syncStatus: 'synced',
         updatedAt: DateTime.tryParse(item['updated_at']?.toString() ?? '') ?? DateTime.now(),
       );
