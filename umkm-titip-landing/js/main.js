@@ -2,7 +2,7 @@
    APK_URL  : alamat unduhan APK, misal "/unduh/umkm-titip.apk" atau tautan Google Drive.
               Dikosongkan = tombol Unduh APK nonaktif dan tampil "APK segera hadir".
    KODE_URL : tautan kode program (Google Drive). Dikosongkan = tautan di footer disembunyikan. */
-var APK_URL = "";
+var APK_URL = "/unduh/umkm-titip.apk";
 var KODE_URL = "";
 document.querySelectorAll("[data-apk]").forEach(function(a) {
   if (APK_URL) {
